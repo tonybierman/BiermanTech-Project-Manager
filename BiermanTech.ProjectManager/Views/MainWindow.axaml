@@ -1,20 +1,25 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:BiermanTech.ProjectManager.ViewModels"
-		xmlns:controls="using:BiermanTech.ProjectManager.Controls"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        xmlns:controls="using:BiermanTech.ProjectManager.Controls"
         x:Class="BiermanTech.ProjectManager.Views.MainWindow"
-        x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="Project Manager - Gantt Chart" Width="800" Height="400">
-    <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainWindowViewModel/>
-    </Design.DataContext>
+        Title="Project Manager - Gantt Chart" Width="800" Height="400"
+        x:DataType="vm:MainWindowViewModel">
+	<Grid>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
 
-	<controls:GanttChartControl Tasks="{Binding Tasks}"/>
+		<!-- Command Buttons -->
+		<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="5">
+			<Button Content="Create Task" Command="{Binding CreateTaskCommand}" Margin="5"/>
+			<Button Content="Update Task" Command="{Binding UpdateTaskCommand}" Margin="5"/>
+			<Button Content="Delete Task" Command="{Binding DeleteTaskCommand}" Margin="5"/>
+			<Button Content="Undo" Command="{Binding UndoCommand}" Margin="5"/>
+		</StackPanel>
 
+		<!-- Gantt Chart -->
+		<controls:GanttChartControl Grid.Row="1" Tasks="{Binding Tasks}" SelectedTask="{Binding SelectedTask, Mode=TwoWay}"/>
+	</Grid>
 </Window>

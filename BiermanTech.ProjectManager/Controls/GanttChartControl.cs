@@ -2,6 +2,7 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
+using Avalonia.Input;
 using Avalonia.Media;
 using BiermanTech.ProjectManager.Models;
 using System;
@@ -21,7 +22,14 @@ public class GanttChartControl : TemplatedControl
             o => o.Tasks,
             (o, v) => o.Tasks = v);
 
+    public static readonly DirectProperty<GanttChartControl, TaskItem> SelectedTaskProperty =
+        AvaloniaProperty.RegisterDirect<GanttChartControl, TaskItem>(
+            nameof(SelectedTask),
+            o => o.SelectedTask,
+            (o, v) => o.SelectedTask = v);
+
     private ObservableCollection<TaskItem> _tasks;
+    private TaskItem _selectedTask;
     private IDisposable _collectionSubscription;
     private Canvas _ganttCanvas;
     private Canvas _headerCanvas;
@@ -33,6 +41,12 @@ public class GanttChartControl : TemplatedControl
     {
         get => _tasks;
         set => SetAndRaise(TasksProperty, ref _tasks, value);
+    }
+
+    public TaskItem SelectedTask
+    {
+        get => _selectedTask;
+        set => SetAndRaise(SelectedTaskProperty, ref _selectedTask, value);
     }
 
     public GanttChartControl()
@@ -63,7 +77,6 @@ public class GanttChartControl : TemplatedControl
         _taskListScrollViewer = e.NameScope.Find<ScrollViewer>("PART_TaskListScrollViewer");
         _chartScrollViewer = e.NameScope.Find<ScrollViewer>("PART_ChartScrollViewer");
 
-        // Synchronize scrolling
         if (_taskListScrollViewer != null && _chartScrollViewer != null)
         {
             _taskListScrollViewer.ScrollChanged += (s, args) =>
@@ -88,7 +101,7 @@ public class GanttChartControl : TemplatedControl
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == TasksProperty)
+        if (change.Property == TasksProperty || change.Property == SelectedTaskProperty)
         {
             UpdateGanttChart();
         }
@@ -111,7 +124,6 @@ public class GanttChartControl : TemplatedControl
         double pixelsPerDay = Math.Max(chartWidth / totalDays, 10);
         double rowHeight = Math.Max(chartHeight / Tasks.Count, 30);
 
-        // Set row height for task list items
         if (_taskList.ItemContainerGenerator != null)
         {
             foreach (var item in _taskList.GetRealizedContainers())
@@ -124,13 +136,13 @@ public class GanttChartControl : TemplatedControl
             }
         }
 
-        DateTime minDate = Tasks.Min(t => t.StartDate);
-        DateTime today = new DateTime(2025, 4, 1);
+        DateTimeOffset minDate = Tasks.Min(t => t.StartDate);
+        DateTimeOffset today = new DateTimeOffset(2025, 4, 1, 0, 0, 0, TimeSpan.Zero);
 
         // Draw header (dates)
         for (int day = 0; day <= totalDays; day++)
         {
-            DateTime date = minDate.AddDays(day);
+            DateTimeOffset date = minDate.AddDays(day);
             double x = day * pixelsPerDay;
             var line = new Line
             {
@@ -165,9 +177,18 @@ public class GanttChartControl : TemplatedControl
             {
                 Width = Math.Max(width, 1),
                 Height = Math.Max(rowHeight - 10, 1),
-                Fill = Brushes.LightBlue,
+                Fill = task == SelectedTask ? Brushes.Yellow : Brushes.LightBlue,
                 [Canvas.LeftProperty] = x,
-                [Canvas.TopProperty] = y + 5
+                [Canvas.TopProperty] = y + 5,
+                Tag = task
+            };
+
+            rect.PointerPressed += (s, e) =>
+            {
+                if (s is Avalonia.Controls.Shapes.Rectangle r && r.Tag is TaskItem clickedTask)
+                {
+                    SelectedTask = clickedTask;
+                }
             };
 
             if (task.PercentComplete > 0)
