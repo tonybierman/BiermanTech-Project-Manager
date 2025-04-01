@@ -27,6 +27,6 @@
 		</StackPanel>
 
 		<!-- Gantt Chart -->
-		<controls:GanttChartControl Grid.Row="1" Tasks="{Binding Tasks}" SelectedTask="{Binding SelectedTask}"/>
+		<controls:GanttChartControl Grid.Row="1" Tasks="{Binding Tasks}" SelectedTask="{Binding SelectedTask, Mode=TwoWay}"/>
 	</Grid>
 </Window>

@@ -9,7 +9,7 @@ using BiermanTech.ProjectManager.Commands;
 using BiermanTech.ProjectManager.Models;
 using BiermanTech.ProjectManager.Services;
 using Serilog;
-using Avalonia.Controls; // Add this for Window
+using Avalonia.Controls;
 
 namespace BiermanTech.ProjectManager.ViewModels;
 
@@ -21,7 +21,7 @@ public class MainWindowViewModel : ViewModelBase
     private readonly IDialogService _dialogService;
     private readonly BiermanTech.ProjectManager.Services.IMessageBus _messageBus;
     private readonly TaskDataSeeder _taskDataSeeder;
-    private readonly Window _mainWindow; // Add this field
+    private readonly Window _mainWindow;
     private TaskItem _selectedTask;
 
     public List<TaskItem> Tasks => _taskRepository.GetTasks();
@@ -29,7 +29,11 @@ public class MainWindowViewModel : ViewModelBase
     public TaskItem SelectedTask
     {
         get => _selectedTask;
-        set => this.RaiseAndSetIfChanged(ref _selectedTask, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _selectedTask, value);
+            Log.Information("SelectedTask changed to: {TaskName}", _selectedTask?.Name ?? "null");
+        }
     }
 
     public ReactiveCommand<Unit, Unit> CreateTaskCommand { get; }
@@ -45,7 +49,7 @@ public class MainWindowViewModel : ViewModelBase
         IDialogService dialogService,
         BiermanTech.ProjectManager.Services.IMessageBus messageBus,
         TaskDataSeeder taskDataSeeder,
-        Window mainWindow) // Add this parameter
+        Window mainWindow)
     {
         _taskRepository = taskRepository;
         _commandManager = commandManager;
@@ -107,6 +111,7 @@ public class MainWindowViewModel : ViewModelBase
             }
         }, this.WhenAnyValue(x => x.SelectedTask)
             .Select(x => x != null)
+            .Do(canExecute => Log.Information("UpdateTaskCommand CanExecute: {CanExecute}", canExecute))
             .Catch<bool, Exception>(ex =>
             {
                 Log.Error(ex, "Error in UpdateTaskCommand CanExecute");
@@ -135,6 +140,7 @@ public class MainWindowViewModel : ViewModelBase
             }
         }, this.WhenAnyValue(x => x.SelectedTask)
             .Select(x => x != null)
+            .Do(canExecute => Log.Information("DeleteTaskCommand CanExecute: {CanExecute}", canExecute))
             .Catch<bool, Exception>(ex =>
             {
                 Log.Error(ex, "Error in DeleteTaskCommand CanExecute");
@@ -142,6 +148,7 @@ public class MainWindowViewModel : ViewModelBase
             }));
 
         var canUndoObservable = this.WhenAnyValue(x => x._commandManager.CanUndo)
+            .Do(canUndo => Log.Information("CanUndo changed: {CanUndo}", canUndo))
             .Catch<bool, Exception>(ex =>
             {
                 Log.Error(ex, "Error in CanUndo observable");
@@ -149,6 +156,7 @@ public class MainWindowViewModel : ViewModelBase
             });
 
         var canRedoObservable = this.WhenAnyValue(x => x._commandManager.CanRedo)
+            .Do(canRedo => Log.Information("CanRedo changed: {CanRedo}", canRedo))
             .Catch<bool, Exception>(ex =>
             {
                 Log.Error(ex, "Error in CanRedo observable");
