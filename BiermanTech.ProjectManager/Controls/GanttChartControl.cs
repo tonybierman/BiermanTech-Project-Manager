@@ -182,11 +182,21 @@ public class GanttChartControl : TemplatedControl
         DateTimeOffset minDate = _localTasks.Min(t => t.StartDate);
         DateTimeOffset today = new DateTimeOffset(2025, 4, 1, 0, 0, 0, TimeSpan.Zero);
 
-        // Draw header (dates)
+        // Adjust header height to accommodate two rows: month names and day numbers
+        double monthRowHeight = 20; // Height for the month name row
+        double dayRowHeight = headerHeight - monthRowHeight; // Remaining height for the day numbers
+        double dayTextTop = monthRowHeight; // Position day numbers below the month row
+
+        // Track the last month displayed to avoid duplicates
+        string lastMonthDisplayed = null;
+
+        // Draw header (month names and day numbers)
         for (int day = 0; day <= totalDays; day++)
         {
             DateTimeOffset date = minDate.AddDays(day);
             double x = day * pixelsPerDay;
+
+            // Draw vertical line for each day
             var line = new Line
             {
                 StartPoint = new Point(x, 0),
@@ -194,16 +204,38 @@ public class GanttChartControl : TemplatedControl
                 Stroke = Brushes.Gray,
                 StrokeThickness = 1
             };
-            var text = new TextBlock
+            _headerCanvas.Children.Add(line);
+
+            // Draw month name on the first of each month
+            if (date.Day == 1 || day == 0) // Show month on the first day of the month or the first day in the range
             {
-                Text = date.ToString("MMM dd"),
+                string monthName = date.ToString("MMMM"); // Full month name (e.g., "April")
+                if (monthName != lastMonthDisplayed) // Avoid duplicate month names
+                {
+                    var monthText = new TextBlock
+                    {
+                        Text = monthName,
+                        Foreground = Brushes.Black,
+                        [Canvas.LeftProperty] = x + 2,
+                        [Canvas.TopProperty] = 5, // Position in the month row
+                        FontSize = 12,
+                        FontWeight = FontWeight.Bold
+                    };
+                    _headerCanvas.Children.Add(monthText);
+                    lastMonthDisplayed = monthName;
+                }
+            }
+
+            // Draw day number
+            var dayText = new TextBlock
+            {
+                Text = date.ToString("dd"), // Day number (e.g., "01")
                 Foreground = Brushes.Black,
                 [Canvas.LeftProperty] = x + 2,
-                [Canvas.TopProperty] = 5,
+                [Canvas.TopProperty] = dayTextTop + 5, // Position in the day row
                 FontSize = 10
             };
-            _headerCanvas.Children.Add(line);
-            _headerCanvas.Children.Add(text);
+            _headerCanvas.Children.Add(dayText);
         }
         _headerCanvas.Width = totalDays * pixelsPerDay;
         _headerCanvas.Height = headerHeight;
