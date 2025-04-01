@@ -17,6 +17,7 @@
 			<Button Content="Update Task" Command="{Binding UpdateTaskCommand}" Margin="5"/>
 			<Button Content="Delete Task" Command="{Binding DeleteTaskCommand}" Margin="5"/>
 			<Button Content="Undo" Command="{Binding UndoCommand}" Margin="5"/>
+			<Button Content="Redo" Command="{Binding RedoCommand}" Margin="5"/>
 		</StackPanel>
 
 		<!-- Gantt Chart -->

@@ -5,12 +5,15 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Media;
 using BiermanTech.ProjectManager.Models;
+using BiermanTech.ProjectManager.Services;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reactive.Linq;
 using ReactiveUI;
 using Avalonia.Controls.Presenters;
-using System.Reactive.Linq;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BiermanTech.ProjectManager.Controls;
 
@@ -30,12 +33,14 @@ public class GanttChartControl : TemplatedControl
 
     private ObservableCollection<TaskItem> _tasks;
     private TaskItem _selectedTask;
+    private List<TaskItem> _localTasks;
     private IDisposable _collectionSubscription;
     private Canvas _ganttCanvas;
     private Canvas _headerCanvas;
     private ItemsControl _taskList;
     private ScrollViewer _taskListScrollViewer;
     private ScrollViewer _chartScrollViewer;
+    private readonly GanttChartRenderer _renderer;
 
     public ObservableCollection<TaskItem> Tasks
     {
@@ -49,23 +54,52 @@ public class GanttChartControl : TemplatedControl
         set => SetAndRaise(SelectedTaskProperty, ref _selectedTask, value);
     }
 
-    public GanttChartControl()
+    public GanttChartControl() : this(App.ServiceProvider.GetService<GanttChartRenderer>())
     {
+    }
+
+    public GanttChartControl(GanttChartRenderer renderer)
+    {
+        _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
+        _localTasks = new List<TaskItem>();
+        SizeChanged += (s, e) => UpdateGanttChart();
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
         this.WhenAnyValue(x => x.Tasks)
             .Subscribe(tasks =>
             {
                 _collectionSubscription?.Dispose();
+                _collectionSubscription = null;
 
                 if (tasks != null)
                 {
-                    _collectionSubscription = this.WhenAnyValue(x => x.Tasks)
-                        .Select(t => t)
-                        .Subscribe(t => t.CollectionChanged += (s, e) => UpdateGanttChart());
+                    _localTasks = new List<TaskItem>(tasks);
+                    if (_taskList != null)
+                    {
+                        _taskList.ItemsSource = _localTasks;
+                    }
+
+                    _collectionSubscription = Observable.FromEventPattern(tasks, nameof(tasks.CollectionChanged))
+                        .Subscribe(_ =>
+                        {
+                            _localTasks = new List<TaskItem>(tasks);
+                            UpdateGanttChart();
+                        });
+                }
+                else
+                {
+                    _localTasks.Clear();
+                    if (_taskList != null)
+                    {
+                        _taskList.ItemsSource = _localTasks;
+                    }
                 }
                 UpdateGanttChart();
             });
-
-        SizeChanged += (s, e) => UpdateGanttChart();
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
@@ -95,6 +129,11 @@ public class GanttChartControl : TemplatedControl
             };
         }
 
+        if (_taskList != null)
+        {
+            _taskList.ItemsSource = _localTasks;
+        }
+
         UpdateGanttChart();
     }
 
@@ -109,20 +148,19 @@ public class GanttChartControl : TemplatedControl
 
     private void UpdateGanttChart()
     {
-        if (_ganttCanvas == null || _headerCanvas == null || _taskList == null || Tasks == null || !Tasks.Any() || Bounds.Width <= 0 || Bounds.Height <= 0) return;
+        if (_ganttCanvas == null || _headerCanvas == null || _taskList == null || _localTasks == null || !_localTasks.Any() || Bounds.Width <= 0 || Bounds.Height <= 0) return;
 
         _ganttCanvas.Children.Clear();
         _headerCanvas.Children.Clear();
-        _taskList.ItemsSource = Tasks;
 
-        double taskListWidth = 150;
+        double taskListWidth = GanttChartConfig.TaskListWidth;
         double chartWidth = Math.Max(Bounds.Width - taskListWidth, 1);
-        double headerHeight = 30;
+        double headerHeight = GanttChartConfig.HeaderHeight;
         double chartHeight = Math.Max(Bounds.Height - headerHeight, 1);
 
-        double totalDays = (Tasks.Max(t => t.EndDate) - Tasks.Min(t => t.StartDate)).TotalDays;
-        double pixelsPerDay = Math.Max(chartWidth / totalDays, 10);
-        double rowHeight = Math.Max(chartHeight / Tasks.Count, 30);
+        double totalDays = (_localTasks.Max(t => t.EndDate) - _localTasks.Min(t => t.StartDate)).TotalDays;
+        double pixelsPerDay = Math.Max(chartWidth / totalDays, GanttChartConfig.MinPixelsPerDay);
+        double rowHeight = Math.Max(chartHeight / _localTasks.Count, GanttChartConfig.MinRowHeight);
 
         if (_taskList.ItemContainerGenerator != null)
         {
@@ -136,7 +174,7 @@ public class GanttChartControl : TemplatedControl
             }
         }
 
-        DateTimeOffset minDate = Tasks.Min(t => t.StartDate);
+        DateTimeOffset minDate = _localTasks.Min(t => t.StartDate);
         DateTimeOffset today = new DateTimeOffset(2025, 4, 1, 0, 0, 0, TimeSpan.Zero);
 
         // Draw header (dates)
@@ -167,11 +205,9 @@ public class GanttChartControl : TemplatedControl
 
         // Draw tasks
         int rowIndex = 0;
-        foreach (var task in Tasks)
+        foreach (var task in _localTasks)
         {
-            double x = (task.StartDate - minDate).TotalDays * pixelsPerDay;
-            double width = task.Duration.TotalDays * pixelsPerDay;
-            double y = rowIndex * rowHeight;
+            var (x, width, y) = _renderer.CalculateTaskPosition(task, minDate, pixelsPerDay, rowHeight, rowIndex);
 
             var rect = new Avalonia.Controls.Shapes.Rectangle
             {
@@ -210,8 +246,8 @@ public class GanttChartControl : TemplatedControl
         }
 
         // Draw TODAY line
-        double todayX = (today - minDate).TotalDays * pixelsPerDay;
-        if (today >= minDate && today <= Tasks.Max(t => t.EndDate))
+        var (todayX, _) = _renderer.CalculateTodayLine(today, minDate, _localTasks.Max(t => t.EndDate), pixelsPerDay);
+        if (todayX >= 0)
         {
             var todayLine = new Line
             {
@@ -226,57 +262,46 @@ public class GanttChartControl : TemplatedControl
 
         // Draw dependencies
         rowIndex = 0;
-        foreach (var task in Tasks)
+        foreach (var task in _localTasks)
         {
             if (task.DependsOn != null)
             {
-                int depIndex = Tasks.IndexOf(task.DependsOn);
-                double depEndX = (task.DependsOn.EndDate - minDate).TotalDays * pixelsPerDay;
-                double depY = depIndex * rowHeight + (rowHeight / 2);
-                double startX = (task.StartDate - minDate).TotalDays * pixelsPerDay;
-                double startY = rowIndex * rowHeight + (rowHeight / 2);
+                int depIndex = _localTasks.IndexOf(task.DependsOn);
+                var lines = _renderer.CalculateDependencyLines(task, task.DependsOn, minDate, pixelsPerDay, rowHeight, rowIndex, depIndex);
 
-                var hLine1 = new Line
+                foreach (var (start, end, isArrow) in lines)
                 {
-                    StartPoint = new Point(depEndX, depY),
-                    EndPoint = new Point(depEndX + 10, depY),
-                    Stroke = Brushes.Black,
-                    StrokeThickness = 1
-                };
-                var vLine = new Line
-                {
-                    StartPoint = new Point(depEndX + 10, depY),
-                    EndPoint = new Point(depEndX + 10, startY),
-                    Stroke = Brushes.Black,
-                    StrokeThickness = 1
-                };
-                var hLine2 = new Line
-                {
-                    StartPoint = new Point(depEndX + 10, startY),
-                    EndPoint = new Point(startX, startY),
-                    Stroke = Brushes.Black,
-                    StrokeThickness = 1
-                };
-                var arrow = new Polygon
-                {
-                    Points = new Avalonia.Collections.AvaloniaList<Point>
+                    if (isArrow)
                     {
-                        new Point(startX, startY),
-                        new Point(startX - 5, startY - 5),
-                        new Point(startX - 5, startY + 5)
-                    },
-                    Fill = Brushes.Black
-                };
-
-                _ganttCanvas.Children.Add(hLine1);
-                _ganttCanvas.Children.Add(vLine);
-                _ganttCanvas.Children.Add(hLine2);
-                _ganttCanvas.Children.Add(arrow);
+                        var arrow = new Polygon
+                        {
+                            Points = new Avalonia.Collections.AvaloniaList<Point>
+                            {
+                                start,
+                                new Point(end.X, end.Y),
+                                new Point(end.X, start.Y + (end.Y - start.Y) / 2)
+                            },
+                            Fill = Brushes.Black
+                        };
+                        _ganttCanvas.Children.Add(arrow);
+                    }
+                    else
+                    {
+                        var line = new Line
+                        {
+                            StartPoint = start,
+                            EndPoint = end,
+                            Stroke = Brushes.Black,
+                            StrokeThickness = 1
+                        };
+                        _ganttCanvas.Children.Add(line);
+                    }
+                }
             }
             rowIndex++;
         }
 
         _ganttCanvas.Width = totalDays * pixelsPerDay;
-        _ganttCanvas.Height = Tasks.Count * rowHeight;
+        _ganttCanvas.Height = _localTasks.Count * rowHeight;
     }
 }

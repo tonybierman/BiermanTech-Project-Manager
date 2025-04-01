@@ -1,29 +1,29 @@
 ﻿using ReactiveUI;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using Avalonia.Controls;
+using BiermanTech.ProjectManager.Commands;
 using BiermanTech.ProjectManager.Models;
+using BiermanTech.ProjectManager.Services;
 using BiermanTech.ProjectManager.Views;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BiermanTech.ProjectManager.ViewModels;
 
 public class MainWindowViewModel : ViewModelBase
 {
-    private ObservableCollection<TaskItem> _tasks;
+    private readonly ITaskRepository _taskRepository;
+    private readonly ICommandManager _commandManager;
+    private readonly ICommandFactory _commandFactory;
+    private readonly IDialogService _dialogService;
+    private readonly BiermanTech.ProjectManager.Services.IMessageBus _messageBus;
+    private readonly TaskDataSeeder _taskDataSeeder;
     private TaskItem _selectedTask;
-    private readonly Stack<Action> _undoStack;
-    private readonly Window _parentWindow;
 
-    public ObservableCollection<TaskItem> Tasks
-    {
-        get => _tasks;
-        set => this.RaiseAndSetIfChanged(ref _tasks, value);
-    }
+    public ObservableCollection<TaskItem> Tasks => _taskRepository.GetTasks();
 
     public TaskItem SelectedTask
     {
@@ -35,65 +35,31 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> UpdateTaskCommand { get; }
     public ReactiveCommand<Unit, Unit> DeleteTaskCommand { get; }
     public ReactiveCommand<Unit, Unit> UndoCommand { get; }
+    public ReactiveCommand<Unit, Unit> RedoCommand { get; }
 
-    public MainWindowViewModel(Window parentWindow)
+    public MainWindowViewModel(
+        ITaskRepository taskRepository,
+        ICommandManager commandManager,
+        ICommandFactory commandFactory,
+        IDialogService dialogService,
+        BiermanTech.ProjectManager.Services.IMessageBus messageBus,
+        TaskDataSeeder taskDataSeeder)
     {
-        _parentWindow = parentWindow;
-        _undoStack = new Stack<Action>();
-        Tasks = new ObservableCollection<TaskItem>
-        {
-            new TaskItem { Name = "Planning", StartDate = new DateTimeOffset(2025, 4, 1, 0, 0, 0, TimeSpan.Zero), Duration = TimeSpan.FromDays(3) },
-            new TaskItem { Name = "Model Dev", StartDate = new DateTimeOffset(2025, 4, 4, 0, 0, 0, TimeSpan.Zero), Duration = TimeSpan.FromDays(4) },
-            new TaskItem { Name = "ViewModel Dev", StartDate = new DateTimeOffset(2025, 4, 8, 0, 0, 0, TimeSpan.Zero), Duration = TimeSpan.FromDays(7) },
-            new TaskItem { Name = "UI Design", StartDate = new DateTimeOffset(2025, 4, 6, 0, 0, 0, TimeSpan.Zero), Duration = TimeSpan.FromDays(5) },
-            new TaskItem { Name = "Database Setup", StartDate = new DateTimeOffset(2025, 4, 10, 0, 0, 0, TimeSpan.Zero), Duration = TimeSpan.FromDays(3) },
-            new TaskItem { Name = "API Integration", StartDate = new DateTimeOffset(2025, 4, 13, 0, 0, 0, TimeSpan.Zero), Duration = TimeSpan.FromDays(6) },
-            new TaskItem { Name = "Unit Testing", StartDate = new DateTimeOffset(2025, 4, 15, 0, 0, 0, TimeSpan.Zero), Duration = TimeSpan.FromDays(4) },
-            new TaskItem { Name = "Code Review", StartDate = new DateTimeOffset(2025, 4, 18, 0, 0, 0, TimeSpan.Zero), Duration = TimeSpan.FromDays(3) },
-            new TaskItem { Name = "Documentation", StartDate = new DateTimeOffset(2025, 4, 20, 0, 0, 0, TimeSpan.Zero), Duration = TimeSpan.FromDays(5) },
-            new TaskItem { Name = "QA Testing", StartDate = new DateTimeOffset(2025, 4, 23, 0, 0, 0, TimeSpan.Zero), Duration = TimeSpan.FromDays(4) },
-            new TaskItem { Name = "Deployment Prep", StartDate = new DateTimeOffset(2025, 4, 25, 0, 0, 0, TimeSpan.Zero), Duration = TimeSpan.FromDays(3) },
-            new TaskItem { Name = "Launch", StartDate = new DateTimeOffset(2025, 4, 28, 0, 0, 0, TimeSpan.Zero), Duration = TimeSpan.FromDays(2) }
-        };
+        _taskRepository = taskRepository;
+        _commandManager = commandManager;
+        _commandFactory = commandFactory;
+        _dialogService = dialogService;
+        _messageBus = messageBus;
+        _taskDataSeeder = taskDataSeeder;
 
-        // Set dependencies
-        Tasks[1].DependsOn = Tasks[0];
-        Tasks[2].DependsOn = Tasks[1];
-        Tasks[3].DependsOn = Tasks[0];
-        Tasks[4].DependsOn = Tasks[1];
-        Tasks[5].DependsOn = Tasks[4];
-        Tasks[6].DependsOn = Tasks[2];
-        Tasks[7].DependsOn = Tasks[6];
-        Tasks[8].DependsOn = Tasks[2];
-        Tasks[9].DependsOn = Tasks[7];
-        Tasks[10].DependsOn = Tasks[9];
-        Tasks[11].DependsOn = Tasks[10];
-
-        // Set percent complete
-        DateTimeOffset today = new DateTimeOffset(2025, 4, 1, 0, 0, 0, TimeSpan.Zero);
-        foreach (var task in Tasks)
-        {
-            if (today < task.StartDate)
-                task.PercentComplete = 0;
-            else if (today >= task.EndDate)
-                task.PercentComplete = 100;
-            else
-            {
-                double daysElapsed = (today - task.StartDate).TotalDays;
-                double totalDays = task.Duration.TotalDays;
-                task.PercentComplete = (daysElapsed / totalDays) * 100;
-            }
-        }
-
-        // Commands
         CreateTaskCommand = ReactiveCommand.CreateFromTask(async () =>
         {
-            var dialog = new TaskDialog(null, Tasks);
-            var result = await dialog.ShowDialog<TaskItem>(_parentWindow);
+            var result = await _dialogService.ShowTaskDialog(null, Tasks, App.ServiceProvider.GetService<MainWindow>());
             if (result != null)
             {
-                Tasks.Add(result);
-                _undoStack.Push(() => Tasks.Remove(result));
+                var command = _commandFactory.CreateAddTaskCommand(result);
+                _commandManager.ExecuteCommand(command);
+                _messageBus.Publish(new TaskAdded(result));
             }
         });
 
@@ -111,26 +77,20 @@ public class MainWindowViewModel : ViewModelBase
                 DependsOn = SelectedTask.DependsOn
             };
 
-            var dialog = new TaskDialog(SelectedTask, Tasks);
-            var result = await dialog.ShowDialog<TaskItem>(_parentWindow);
+            var result = await _dialogService.ShowTaskDialog(SelectedTask, Tasks, App.ServiceProvider.GetService<MainWindow>());
             if (result != null)
             {
-                SelectedTask.Name = result.Name;
-                SelectedTask.StartDate = result.StartDate;
-                SelectedTask.Duration = result.Duration;
-                SelectedTask.DependsOn = result.DependsOn;
-
-                _undoStack.Push(() =>
-                {
-                    var taskToUpdate = Tasks.First(t => t.Id == originalTask.Id);
-                    taskToUpdate.Name = originalTask.Name;
-                    taskToUpdate.StartDate = originalTask.StartDate;
-                    taskToUpdate.Duration = originalTask.Duration;
-                    taskToUpdate.PercentComplete = originalTask.PercentComplete;
-                    taskToUpdate.DependsOn = originalTask.DependsOn;
-                });
+                var command = _commandFactory.CreateUpdateTaskCommand(originalTask, result);
+                _commandManager.ExecuteCommand(command);
+                _messageBus.Publish(new TaskUpdated(result));
             }
-        }, this.WhenAnyValue(x => x.SelectedTask).Select(x => x != null));
+        }, this.WhenAnyValue(x => x.SelectedTask)
+            .Select(x => x != null)
+            .Catch<bool, Exception>(ex =>
+            {
+                Console.WriteLine($"Error in UpdateTaskCommand CanExecute: {ex.Message}");
+                return Observable.Return(false);
+            }));
 
         DeleteTaskCommand = ReactiveCommand.Create(() =>
         {
@@ -138,33 +98,46 @@ public class MainWindowViewModel : ViewModelBase
 
             var taskToDelete = SelectedTask;
             int index = Tasks.IndexOf(taskToDelete);
-            Tasks.Remove(taskToDelete);
-
-            var dependentTasks = Tasks.Where(t => t.DependsOn == taskToDelete).ToList();
-            foreach (var dependent in dependentTasks)
+            var dependentTasks = new ObservableCollection<TaskItem>(Tasks.Where(t => t.DependsOn == taskToDelete));
+            var command = _commandFactory.CreateDeleteTaskCommand(taskToDelete, index, dependentTasks);
+            _commandManager.ExecuteCommand(command);
+            _messageBus.Publish(new TaskDeleted(taskToDelete));
+            SelectedTask = null;
+        }, this.WhenAnyValue(x => x.SelectedTask)
+            .Select(x => x != null)
+            .Catch<bool, Exception>(ex =>
             {
-                dependent.DependsOn = null;
-            }
+                Console.WriteLine($"Error in DeleteTaskCommand CanExecute: {ex.Message}");
+                return Observable.Return(false);
+            }));
 
-            _undoStack.Push(() =>
+        var canUndoObservable = this.WhenAnyValue(x => x._commandManager.CanUndo)
+            .Catch<bool, Exception>(ex =>
             {
-                Tasks.Insert(index, taskToDelete);
-                foreach (var dependent in dependentTasks)
-                {
-                    dependent.DependsOn = taskToDelete;
-                }
+                Console.WriteLine($"Error in CanUndo observable: {ex.Message}");
+                return Observable.Return(false);
             });
 
-            SelectedTask = null;
-        }, this.WhenAnyValue(x => x.SelectedTask).Select(x => x != null));
+        var canRedoObservable = this.WhenAnyValue(x => x._commandManager.CanRedo)
+            .Catch<bool, Exception>(ex =>
+            {
+                Console.WriteLine($"Error in CanRedo observable: {ex.Message}");
+                return Observable.Return(false);
+            });
 
         UndoCommand = ReactiveCommand.Create(() =>
         {
-            if (_undoStack.Count > 0)
-            {
-                var undoAction = _undoStack.Pop();
-                undoAction();
-            }
-        }, Observable.Return(true).Concat(Observable.Never<bool>()).StartWith(_undoStack.Count > 0));
+            _commandManager.Undo();
+        }, canUndoObservable);
+
+        RedoCommand = ReactiveCommand.Create(() =>
+        {
+            _commandManager.Redo();
+        }, canRedoObservable);
+    }
+
+    public void Initialize()
+    {
+        _taskDataSeeder.SeedSampleData();
     }
 }

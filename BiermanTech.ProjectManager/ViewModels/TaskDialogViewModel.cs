@@ -2,6 +2,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Reactive;
+using System.Reactive.Linq;
 using Avalonia.Controls;
 using BiermanTech.ProjectManager.Models;
 
@@ -71,6 +72,9 @@ public class TaskDialogViewModel : ViewModelBase
             DependsOn = null;
         }
 
+        var canSave = this.WhenAnyValue(x => x.TaskName, x => x.DurationDays)
+            .Select(x => !string.IsNullOrWhiteSpace(x.Item1) && x.Item2 > 0);
+
         SaveCommand = ReactiveCommand.Create(() =>
         {
             var task = _taskToEdit ?? new TaskItem();
@@ -78,19 +82,12 @@ public class TaskDialogViewModel : ViewModelBase
             task.StartDate = StartDate ?? DateTimeOffset.Now;
             task.Duration = TimeSpan.FromDays(DurationDays);
             task.DependsOn = DependsOn;
-
-            if (_dialogWindow != null)
-            {
-                _dialogWindow.Close(task); // Set the result and close the dialog
-            }
-        });
+            _dialogWindow.Close(task);
+        }, canSave);
 
         CancelCommand = ReactiveCommand.Create(() =>
         {
-            if (_dialogWindow != null)
-            {
-                _dialogWindow.Close(null); // Close the dialog with no result
-            }
+            _dialogWindow.Close(null);
         });
     }
 }
