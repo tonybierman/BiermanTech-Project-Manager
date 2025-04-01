@@ -2,31 +2,33 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:BiermanTech.ProjectManager.ViewModels"
         x:Class="BiermanTech.ProjectManager.Views.TaskDialog"
-        Title="Task Details" Width="400" Height="300"
-        x:DataType="vm:TaskDialogViewModel"
-        WindowStartupLocation="CenterOwner">
+        Title="Task Dialog" Width="400" Height="350"
+	x:DataType="vm:TaskDialogViewModel">
 	<Grid Margin="10">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
+			<!-- Added for Start Date label -->
+			<RowDefinition Height="Auto"/>
+			<!-- Added for Start Date picker -->
+			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="*"/>
-			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
 
-		<TextBlock Grid.Row="0" Text="Task Name:" Margin="5"/>
-		<TextBox Grid.Row="1" Text="{Binding TaskName}" Margin="5"/>
+		<TextBlock Grid.Row="0" Text="Task Name:"/>
+		<TextBox Grid.Row="1" Text="{Binding TaskName}"/>
 
-		<TextBlock Grid.Row="2" Text="Start Date:" Margin="5"/>
-		<DatePicker Grid.Row="3" SelectedDate="{Binding StartDate}" Margin="5"/>
+		<TextBlock Grid.Row="2" Text="Start Date:"/>
+		<DatePicker Grid.Row="3" SelectedDate="{Binding StartDate}"/>
 
-		<TextBlock Grid.Row="4" Text="Duration (days):" Margin="5"/>
-		<NumericUpDown Grid.Row="5" Value="{Binding DurationDays}" Minimum="1" Margin="5"/>
+		<TextBlock Grid.Row="4" Text="Duration (days):"/>
+		<TextBox Grid.Row="5" Text="{Binding DurationDays}"/>
 
-		<TextBlock Grid.Row="6" Text="Depends On:" Margin="5"/>
-		<ComboBox Grid.Row="7" ItemsSource="{Binding AvailableTasks}" SelectedItem="{Binding DependsOn}" Margin="5">
+		<TextBlock Grid.Row="6" Text="Depends On:"/>
+		<ComboBox Grid.Row="7" ItemsSource="{Binding AvailableTasks}" SelectedItem="{Binding DependsOn}">
 			<ComboBox.ItemTemplate>
 				<DataTemplate>
 					<TextBlock Text="{Binding Name}"/>
@@ -34,9 +36,9 @@
 			</ComboBox.ItemTemplate>
 		</ComboBox>
 
-		<StackPanel Grid.Row="8" Orientation="Horizontal" HorizontalAlignment="Right" Margin="5">
-			<Button Content="OK" Command="{Binding SaveCommand}" Margin="5"/>
-			<Button Content="Cancel" Command="{Binding CancelCommand}" Margin="5"/>
+		<StackPanel Grid.Row="8" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+			<Button Content="Save" Command="{Binding SaveCommand}" Margin="0,0,10,0"/>
+			<Button Content="Cancel" Command="{Binding CancelCommand}"/>
 		</StackPanel>
 	</Grid>
 </Window>

@@ -1,11 +1,10 @@
-﻿using System.Collections.ObjectModel;
+﻿using BiermanTech.ProjectManager.Models;
+using System.Collections.Generic;
 using System.Threading.Tasks;
-using Avalonia.Controls;
-using BiermanTech.ProjectManager.Models;
 
 namespace BiermanTech.ProjectManager.Services;
 
 public interface IDialogService
 {
-    Task<TaskItem> ShowTaskDialog(TaskItem taskToEdit, ObservableCollection<TaskItem> allTasks, Window parentWindow);
+    Task<TaskItem> ShowTaskDialog(TaskItem task, List<TaskItem> tasks, Avalonia.Controls.Window parent);
 }

@@ -1,22 +1,22 @@
-﻿using ReactiveUI;
+﻿using BiermanTech.ProjectManager.Models;
+using ReactiveUI;
 using System;
-using System.Collections.ObjectModel;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
-using Avalonia.Controls;
-using BiermanTech.ProjectManager.Models;
 
 namespace BiermanTech.ProjectManager.ViewModels;
 
 public class TaskDialogViewModel : ViewModelBase
 {
     private string _taskName;
-    private DateTimeOffset? _startDate;
+    private DateTimeOffset? _startDate; // Changed to nullable to match DatePicker
     private double _durationDays;
+    private double _percentComplete;
     private TaskItem _dependsOn;
-    private readonly ObservableCollection<TaskItem> _availableTasks;
-    private readonly TaskItem _taskToEdit;
-    private readonly Window _dialogWindow;
+    private readonly List<TaskItem> _tasks;
+    private readonly TaskItem _task;
 
     public string TaskName
     {
@@ -36,58 +36,78 @@ public class TaskDialogViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _durationDays, value);
     }
 
+    public double PercentComplete
+    {
+        get => _percentComplete;
+        set => this.RaiseAndSetIfChanged(ref _percentComplete, value);
+    }
+
     public TaskItem DependsOn
     {
         get => _dependsOn;
         set => this.RaiseAndSetIfChanged(ref _dependsOn, value);
     }
 
-    public ObservableCollection<TaskItem> AvailableTasks
+    public List<TaskItem> AvailableTasks
     {
-        get => _availableTasks;
+        get => _tasks.Where(t => t != _task).ToList();
     }
 
-    public ReactiveCommand<Unit, Unit> SaveCommand { get; }
+    public ReactiveCommand<Unit, TaskItem> SaveCommand { get; }
     public ReactiveCommand<Unit, Unit> CancelCommand { get; }
 
-    public TaskDialogViewModel(TaskItem taskToEdit = null, ObservableCollection<TaskItem> allTasks = null, Window dialogWindow = null)
-    {
-        _taskToEdit = taskToEdit;
-        _dialogWindow = dialogWindow;
-        _availableTasks = new ObservableCollection<TaskItem>(allTasks ?? new ObservableCollection<TaskItem>());
-        _availableTasks.Insert(0, null);
+    private TaskItem _result;
 
-        if (taskToEdit != null)
+    public TaskDialogViewModel(TaskItem task, List<TaskItem> tasks)
+    {
+        _task = task;
+        _tasks = tasks;
+
+        if (task != null)
         {
-            TaskName = taskToEdit.Name;
-            StartDate = taskToEdit.StartDate;
-            DurationDays = taskToEdit.Duration.TotalDays;
-            DependsOn = taskToEdit.DependsOn;
+            TaskName = task.Name;
+            StartDate = task.StartDate;
+            DurationDays = task.Duration.TotalDays;
+            PercentComplete = task.PercentComplete;
+            DependsOn = task.DependsOn;
         }
         else
         {
-            TaskName = "New Task";
-            StartDate = DateTimeOffset.Now;
-            DurationDays = 3;
+            TaskName = string.Empty;
+            StartDate = DateTimeOffset.Now; // Default to today
+            DurationDays = 1;
+            PercentComplete = 0;
             DependsOn = null;
         }
 
-        var canSave = this.WhenAnyValue(x => x.TaskName, x => x.DurationDays)
-            .Select(x => !string.IsNullOrWhiteSpace(x.Item1) && x.Item2 > 0);
-
         SaveCommand = ReactiveCommand.Create(() =>
         {
-            var task = _taskToEdit ?? new TaskItem();
-            task.Name = TaskName;
-            task.StartDate = StartDate ?? DateTimeOffset.Now;
-            task.Duration = TimeSpan.FromDays(DurationDays);
-            task.DependsOn = DependsOn;
-            _dialogWindow.Close(task);
-        }, canSave);
+            // Ensure StartDate has a value before saving
+            if (!StartDate.HasValue)
+            {
+                throw new InvalidOperationException("Start Date is required.");
+            }
+
+            _result = new TaskItem
+            {
+                Id = _task?.Id ?? Guid.NewGuid(),
+                Name = TaskName,
+                StartDate = StartDate.Value, // Use the value since we checked for null
+                Duration = TimeSpan.FromDays(DurationDays),
+                PercentComplete = PercentComplete,
+                DependsOn = DependsOn
+            };
+            return _result;
+        });
 
         CancelCommand = ReactiveCommand.Create(() =>
         {
-            _dialogWindow.Close(null);
+            _result = null;
         });
+    }
+
+    public TaskItem GetResult()
+    {
+        return _result;
     }
 }

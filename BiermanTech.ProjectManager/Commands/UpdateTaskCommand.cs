@@ -16,7 +16,6 @@ public class UpdateTaskCommand : ICommand
         _originalTask = originalTask;
         _updatedTask = updatedTask;
         _taskRepository = taskRepository;
-        // Store the original state for undo
         _previousState = new TaskItem
         {
             Id = originalTask.Id,
@@ -34,12 +33,12 @@ public class UpdateTaskCommand : ICommand
         var taskToUpdate = tasks.FirstOrDefault(t => t.Id == _originalTask.Id);
         if (taskToUpdate != null)
         {
-            // Update properties instead of replacing the item
             taskToUpdate.Name = _updatedTask.Name;
             taskToUpdate.StartDate = _updatedTask.StartDate;
             taskToUpdate.Duration = _updatedTask.Duration;
             taskToUpdate.PercentComplete = _updatedTask.PercentComplete;
             taskToUpdate.DependsOn = _updatedTask.DependsOn;
+            _taskRepository.NotifyTasksChanged(); // Call the method instead of invoking the event
         }
     }
 
@@ -49,12 +48,12 @@ public class UpdateTaskCommand : ICommand
         var taskToRevert = tasks.FirstOrDefault(t => t.Id == _originalTask.Id);
         if (taskToRevert != null)
         {
-            // Revert to the previous state
             taskToRevert.Name = _previousState.Name;
             taskToRevert.StartDate = _previousState.StartDate;
             taskToRevert.Duration = _previousState.Duration;
             taskToRevert.PercentComplete = _previousState.PercentComplete;
             taskToRevert.DependsOn = _previousState.DependsOn;
+            _taskRepository.NotifyTasksChanged(); // Call the method instead of invoking the event
         }
     }
 }

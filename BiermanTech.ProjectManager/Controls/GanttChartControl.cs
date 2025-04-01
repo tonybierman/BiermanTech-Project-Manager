@@ -8,19 +8,19 @@ using BiermanTech.ProjectManager.Models;
 using BiermanTech.ProjectManager.Services;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Linq;
 using ReactiveUI;
 using Avalonia.Controls.Presenters;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
 namespace BiermanTech.ProjectManager.Controls;
 
 public class GanttChartControl : TemplatedControl
 {
-    public static readonly DirectProperty<GanttChartControl, ObservableCollection<TaskItem>> TasksProperty =
-        AvaloniaProperty.RegisterDirect<GanttChartControl, ObservableCollection<TaskItem>>(
+    public static readonly DirectProperty<GanttChartControl, List<TaskItem>> TasksProperty =
+        AvaloniaProperty.RegisterDirect<GanttChartControl, List<TaskItem>>(
             nameof(Tasks),
             o => o.Tasks,
             (o, v) => o.Tasks = v);
@@ -31,18 +31,19 @@ public class GanttChartControl : TemplatedControl
             o => o.SelectedTask,
             (o, v) => o.SelectedTask = v);
 
-    private ObservableCollection<TaskItem> _tasks;
+    private List<TaskItem> _tasks;
     private TaskItem _selectedTask;
     private List<TaskItem> _localTasks;
-    private IDisposable _collectionSubscription;
+    private IDisposable _tasksSubscription;
     private Canvas _ganttCanvas;
     private Canvas _headerCanvas;
     private ItemsControl _taskList;
     private ScrollViewer _taskListScrollViewer;
     private ScrollViewer _chartScrollViewer;
     private readonly GanttChartRenderer _renderer;
+    private ITaskRepository _taskRepository;
 
-    public ObservableCollection<TaskItem> Tasks
+    public List<TaskItem> Tasks
     {
         get => _tasks;
         set => SetAndRaise(TasksProperty, ref _tasks, value);
@@ -62,6 +63,7 @@ public class GanttChartControl : TemplatedControl
     {
         _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
         _localTasks = new List<TaskItem>();
+        _taskRepository = App.ServiceProvider.GetService<ITaskRepository>();
         SizeChanged += (s, e) => UpdateGanttChart();
     }
 
@@ -72,8 +74,8 @@ public class GanttChartControl : TemplatedControl
         this.WhenAnyValue(x => x.Tasks)
             .Subscribe(tasks =>
             {
-                _collectionSubscription?.Dispose();
-                _collectionSubscription = null;
+                _tasksSubscription?.Dispose();
+                _tasksSubscription = null;
 
                 if (tasks != null)
                 {
@@ -83,9 +85,12 @@ public class GanttChartControl : TemplatedControl
                         _taskList.ItemsSource = _localTasks;
                     }
 
-                    _collectionSubscription = Observable.FromEventPattern(tasks, nameof(tasks.CollectionChanged))
+                    _tasksSubscription = Observable.FromEventPattern<EventHandler, EventArgs>(
+                        h => _taskRepository.TasksChanged += h,
+                        h => _taskRepository.TasksChanged -= h)
                         .Subscribe(_ =>
                         {
+                            Log.Information("TasksChanged event received, updating local tasks");
                             _localTasks = new List<TaskItem>(tasks);
                             UpdateGanttChart();
                         });

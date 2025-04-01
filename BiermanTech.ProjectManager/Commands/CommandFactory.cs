@@ -1,6 +1,6 @@
 ﻿using BiermanTech.ProjectManager.Models;
 using BiermanTech.ProjectManager.Services;
-using System.Collections.ObjectModel;
+using System.Collections.Generic;
 
 namespace BiermanTech.ProjectManager.Commands;
 
@@ -23,7 +23,7 @@ public class CommandFactory : ICommandFactory
         return new UpdateTaskCommand(originalTask, updatedTask, _taskRepository);
     }
 
-    public ICommand CreateDeleteTaskCommand(TaskItem task, int index, ObservableCollection<TaskItem> dependentTasks)
+    public ICommand CreateDeleteTaskCommand(TaskItem task, int index, List<TaskItem> dependentTasks)
     {
         return new DeleteTaskCommand(task, index, dependentTasks, _taskRepository);
     }

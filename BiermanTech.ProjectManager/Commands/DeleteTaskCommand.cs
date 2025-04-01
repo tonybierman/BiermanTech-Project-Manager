@@ -1,6 +1,6 @@
 ﻿using BiermanTech.ProjectManager.Models;
 using BiermanTech.ProjectManager.Services;
-using System.Collections.ObjectModel;
+using System.Collections.Generic;
 
 namespace BiermanTech.ProjectManager.Commands;
 
@@ -8,10 +8,10 @@ public class DeleteTaskCommand : ICommand
 {
     private readonly TaskItem _task;
     private readonly int _index;
-    private readonly ObservableCollection<TaskItem> _dependentTasks;
+    private readonly List<TaskItem> _dependentTasks;
     private readonly ITaskRepository _taskRepository;
 
-    public DeleteTaskCommand(TaskItem task, int index, ObservableCollection<TaskItem> dependentTasks, ITaskRepository taskRepository)
+    public DeleteTaskCommand(TaskItem task, int index, List<TaskItem> dependentTasks, ITaskRepository taskRepository)
     {
         _task = task;
         _index = index;
@@ -28,6 +28,8 @@ public class DeleteTaskCommand : ICommand
         {
             dependentTask.DependsOn = null;
         }
+
+        _taskRepository.NotifyTasksChanged(); // Call the method instead of invoking the event
     }
 
     public void Undo()
@@ -39,5 +41,7 @@ public class DeleteTaskCommand : ICommand
         {
             dependentTask.DependsOn = _task;
         }
+
+        _taskRepository.NotifyTasksChanged(); // Call the method instead of invoking the event
     }
 }
