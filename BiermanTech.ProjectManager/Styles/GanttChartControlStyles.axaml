@@ -1,0 +1,52 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:BiermanTech.ProjectManager.Controls"
+        xmlns:models="using:BiermanTech.ProjectManager.Models">
+	<Style Selector="controls|GanttChartControl">
+		<Setter Property="Template">
+			<ControlTemplate>
+				<Grid>
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="150"/>
+						<ColumnDefinition Width="*"/>
+					</Grid.ColumnDefinitions>
+					<Grid.RowDefinitions>
+						<RowDefinition Height="30"/>
+						<RowDefinition Height="*"/>
+					</Grid.RowDefinitions>
+
+					<!-- Task List Header -->
+					<Border Grid.Row="0" Grid.Column="0" Background="LightGray">
+						<TextBlock Text="Task Name" VerticalAlignment="Center" Margin="5"/>
+					</Border>
+
+					<!-- Timeline Header -->
+					<ScrollViewer Grid.Row="0" Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+						<Canvas Name="PART_HeaderCanvas" Background="LightGray"/>
+					</ScrollViewer>
+
+					<!-- Task List -->
+					<ScrollViewer Name="PART_TaskListScrollViewer" Grid.Row="1" Grid.Column="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+						<ItemsControl Name="PART_TaskList" Background="#A9A9A9">
+							<ItemsControl.ItemTemplate>
+								<DataTemplate x:DataType="models:TaskItem">
+									<TextBlock Text="{Binding Name}" VerticalAlignment="Center" Margin="5"/>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+							<ItemsControl.ItemsPanel>
+								<ItemsPanelTemplate>
+									<StackPanel Orientation="Vertical"/>
+								</ItemsPanelTemplate>
+							</ItemsControl.ItemsPanel>
+						</ItemsControl>
+					</ScrollViewer>
+
+					<!-- Gantt Chart -->
+					<ScrollViewer Name="PART_ChartScrollViewer" Grid.Row="1" Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+						<Canvas Name="PART_GanttCanvas" Background="#F0F0F0"/>
+					</ScrollViewer>
+				</Grid>
+			</ControlTemplate>
+		</Setter>
+	</Style>
+</Styles>
