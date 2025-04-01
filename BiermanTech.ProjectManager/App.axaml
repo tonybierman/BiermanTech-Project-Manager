@@ -7,6 +7,7 @@
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 	<Application.Resources>
 		<converters:BoolToBackgroundConverter x:Key="BoolToBackgroundConverter"/>
+		<converters:IsNotNullConverter x:Key="IsNotNullConverter"/>
 	</Application.Resources>
 	
     <Application.DataTemplates>

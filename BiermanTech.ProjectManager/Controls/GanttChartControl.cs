@@ -48,7 +48,15 @@ public class GanttChartControl : TemplatedControl
     public TaskItem SelectedTask
     {
         get => _viewModel.SelectedTask;
-        set => _viewModel.SelectedTask = value;
+        set
+        {
+            if (_viewModel.SelectedTask != value)
+            {
+                var oldValue = _viewModel.SelectedTask;
+                _viewModel.SelectedTask = value;
+                RaisePropertyChanged(SelectedTaskProperty, oldValue, value);
+            }
+        }
     }
 
     public GanttChartControl() : this(
@@ -67,10 +75,12 @@ public class GanttChartControl : TemplatedControl
             .ObserveOn(AvaloniaScheduler.Instance)
             .Subscribe(_ => UpdateGanttChart());
 
-        // Log SelectedTask changes for debugging
-        this.WhenAnyValue(x => x.SelectedTask)
+        // Subscribe to changes in _viewModel.SelectedTask to raise property changed notification
+        _viewModel.WhenAnyValue(x => x.SelectedTask)
             .Subscribe(selectedTask =>
             {
+                // Raise property changed for SelectedTaskProperty to notify the binding
+                RaisePropertyChanged(SelectedTaskProperty, selectedTask, selectedTask);
                 Log.Information("GanttChartControl SelectedTask changed, task: {TaskName}", selectedTask?.Name ?? "null");
             });
     }

@@ -20,8 +20,8 @@
 		<!-- Toolbar -->
 		<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="5">
 			<Button Content="Add Task" Command="{Binding CreateTaskCommand}"/>
-			<Button Content="Update Task" Command="{Binding UpdateTaskCommand}"/>
-			<Button Content="Delete Task" Command="{Binding DeleteTaskCommand}"/>
+			<Button Content="Update Task" Command="{Binding UpdateTaskCommand}" IsEnabled="{Binding SelectedTask, Converter={StaticResource IsNotNullConverter}}"/>
+			<Button Content="Delete Task" Command="{Binding DeleteTaskCommand}" IsEnabled="{Binding SelectedTask, Converter={StaticResource IsNotNullConverter}}"/>
 			<Button Content="Undo" Command="{Binding UndoCommand}"/>
 			<Button Content="Redo" Command="{Binding RedoCommand}"/>
 		</StackPanel>

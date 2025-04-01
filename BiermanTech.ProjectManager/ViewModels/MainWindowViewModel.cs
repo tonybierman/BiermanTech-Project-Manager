@@ -22,9 +22,15 @@ public class MainWindowViewModel : ViewModelBase
     private readonly BiermanTech.ProjectManager.Services.IMessageBus _messageBus;
     private readonly TaskDataSeeder _taskDataSeeder;
     private readonly Window _mainWindow;
+    private List<TaskItem> _tasks;
     private TaskItem _selectedTask;
+    private IDisposable _taskChangedSubscription;
 
-    public List<TaskItem> Tasks => _taskRepository.GetTasks();
+    public List<TaskItem> Tasks
+    {
+        get => _tasks;
+        set => this.RaiseAndSetIfChanged(ref _tasks, value);
+    }
 
     public TaskItem SelectedTask
     {
@@ -32,7 +38,7 @@ public class MainWindowViewModel : ViewModelBase
         set
         {
             this.RaiseAndSetIfChanged(ref _selectedTask, value);
-            Log.Information("SelectedTask changed to: {TaskName}", _selectedTask?.Name ?? "null");
+            Log.Information("MainWindowViewModel SelectedTask changed to: {TaskName}", _selectedTask?.Name ?? "null");
         }
     }
 
@@ -58,6 +64,43 @@ public class MainWindowViewModel : ViewModelBase
         _messageBus = messageBus;
         _taskDataSeeder = taskDataSeeder;
         _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
+
+        // Initialize Tasks
+        _tasks = new List<TaskItem>();
+
+        // Subscribe to task changes from the repository
+        _taskChangedSubscription = Observable.FromEventPattern<EventHandler, EventArgs>(
+            h => _taskRepository.TasksChanged += h,
+            h => _taskRepository.TasksChanged -= h)
+            .Subscribe(_ =>
+            {
+                Log.Information("TasksChanged event received in MainWindowViewModel");
+                var newTasks = _taskRepository.GetTasks();
+                if (newTasks != null)
+                {
+                    // Update Tasks
+                    Tasks = new List<TaskItem>(newTasks);
+
+                    // Update SelectedTask to point to the corresponding task in the new list
+                    if (_selectedTask != null)
+                    {
+                        var newSelectedTask = Tasks.FirstOrDefault(t => t.Id == _selectedTask.Id);
+                        if (newSelectedTask != null)
+                        {
+                            SelectedTask = newSelectedTask;
+                        }
+                        else
+                        {
+                            SelectedTask = null; // Task no longer exists (e.g., deleted)
+                        }
+                    }
+                }
+                else
+                {
+                    Tasks = new List<TaskItem>();
+                    SelectedTask = null;
+                }
+            });
 
         CreateTaskCommand = ReactiveCommand.CreateFromTask(async () =>
         {
@@ -177,5 +220,11 @@ public class MainWindowViewModel : ViewModelBase
     public void Initialize()
     {
         _taskDataSeeder.SeedSampleData();
+        Tasks = new List<TaskItem>(_taskRepository.GetTasks());
+    }
+
+    public void Dispose()
+    {
+        _taskChangedSubscription?.Dispose();
     }
 }
