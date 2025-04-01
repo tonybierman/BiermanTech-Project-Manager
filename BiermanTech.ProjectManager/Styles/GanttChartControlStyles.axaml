@@ -7,17 +7,31 @@
 			<ControlTemplate>
 				<Grid>
 					<Grid.ColumnDefinitions>
-						<ColumnDefinition Width="150"/>
+						<ColumnDefinition Width="330"/>
+						<!-- Updated to match total column width (150 + 100 + 80) -->
 						<ColumnDefinition Width="*"/>
 					</Grid.ColumnDefinitions>
 					<Grid.RowDefinitions>
-						<RowDefinition Height="30"/>
+						<RowDefinition Height="40"/>
+						<!-- Increased height to match GanttChartConfig -->
 						<RowDefinition Height="*"/>
 					</Grid.RowDefinitions>
 
 					<!-- Task List Header -->
 					<Border Grid.Row="0" Grid.Column="0" Background="LightGray">
-						<TextBlock Text="Task Name" VerticalAlignment="Center" Margin="5"/>
+						<Grid>
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="150"/>
+								<!-- Name -->
+								<ColumnDefinition Width="100"/>
+								<!-- Start -->
+								<ColumnDefinition Width="80"/>
+								<!-- Duration -->
+							</Grid.ColumnDefinitions>
+							<TextBlock Grid.Column="0" Text="Name" VerticalAlignment="Center" Margin="5" FontWeight="Bold"/>
+							<TextBlock Grid.Column="1" Text="Start" VerticalAlignment="Center" Margin="5" FontWeight="Bold"/>
+							<TextBlock Grid.Column="2" Text="Duration" VerticalAlignment="Center" Margin="5" FontWeight="Bold"/>
+						</Grid>
 					</Border>
 
 					<!-- Timeline Header -->
@@ -30,7 +44,19 @@
 						<ItemsControl Name="PART_TaskList" Background="#A9A9A9">
 							<ItemsControl.ItemTemplate>
 								<DataTemplate x:DataType="models:TaskItem">
-									<TextBlock Text="{Binding Name}" VerticalAlignment="Center" Margin="5"/>
+									<Grid Background="{Binding $self.IsPointerOver, Converter={StaticResource BoolToBackgroundConverter}, FallbackValue=Transparent}">
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition Width="150"/>
+											<!-- Name -->
+											<ColumnDefinition Width="100"/>
+											<!-- Start -->
+											<ColumnDefinition Width="80"/>
+											<!-- Duration -->
+										</Grid.ColumnDefinitions>
+										<TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center" Margin="5" TextWrapping="Wrap"/>
+										<TextBlock Grid.Column="1" Text="{Binding StartDate, StringFormat='MMM dd, yyyy'}" VerticalAlignment="Center" Margin="5"/>
+										<TextBlock Grid.Column="2" Text="{Binding Duration.TotalDays, StringFormat='{}{0} days'}" VerticalAlignment="Center" Margin="5"/>
+									</Grid>
 								</DataTemplate>
 							</ItemsControl.ItemTemplate>
 							<ItemsControl.ItemsPanel>

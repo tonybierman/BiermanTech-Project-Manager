@@ -3,24 +3,30 @@
         xmlns:vm="using:BiermanTech.ProjectManager.ViewModels"
         xmlns:controls="using:BiermanTech.ProjectManager.Controls"
         x:Class="BiermanTech.ProjectManager.Views.MainWindow"
-        Title="Project Manager - Gantt Chart" Width="800" Height="400"
+        Title="BiermanTech Project Manager" Width="800" Height="600"
         x:DataType="vm:MainWindowViewModel">
+	<Window.Styles>
+		<Style Selector="Button">
+			<Setter Property="Margin" Value="5"/>
+		</Style>
+	</Window.Styles>
+
 	<Grid>
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="*"/>
 		</Grid.RowDefinitions>
 
-		<!-- Command Buttons -->
+		<!-- Toolbar -->
 		<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="5">
-			<Button Content="Create Task" Command="{Binding CreateTaskCommand}" Margin="5"/>
-			<Button Content="Update Task" Command="{Binding UpdateTaskCommand}" Margin="5"/>
-			<Button Content="Delete Task" Command="{Binding DeleteTaskCommand}" Margin="5"/>
-			<Button Content="Undo" Command="{Binding UndoCommand}" Margin="5"/>
-			<Button Content="Redo" Command="{Binding RedoCommand}" Margin="5"/>
+			<Button Content="Add Task" Command="{Binding CreateTaskCommand}"/>
+			<Button Content="Update Task" Command="{Binding UpdateTaskCommand}"/>
+			<Button Content="Delete Task" Command="{Binding DeleteTaskCommand}"/>
+			<Button Content="Undo" Command="{Binding UndoCommand}"/>
+			<Button Content="Redo" Command="{Binding RedoCommand}"/>
 		</StackPanel>
 
 		<!-- Gantt Chart -->
-		<controls:GanttChartControl Grid.Row="1" Tasks="{Binding Tasks}" SelectedTask="{Binding SelectedTask, Mode=TwoWay}"/>
+		<controls:GanttChartControl Grid.Row="1" Tasks="{Binding Tasks}" SelectedTask="{Binding SelectedTask}"/>
 	</Grid>
 </Window>
