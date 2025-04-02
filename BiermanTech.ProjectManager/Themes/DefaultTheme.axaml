@@ -11,6 +11,15 @@
 	<SolidColorBrush x:Key="TodayLineBrush" Color="Red"/>
 	<SolidColorBrush x:Key="DependencyLineBrush" Color="Black"/>
 	<SolidColorBrush x:Key="TextForegroundBrush" Color="Black"/>
+	<!-- Task Bar Border -->
+	<SolidColorBrush x:Key="TaskBorderBrush" Color="DarkBlue"/>
+	<!-- DarkBlue for contrast with LightBlue/Yellow -->
+	<x:Double x:Key="TaskBorderThickness">1</x:Double>
+	<!-- Optional: Add a dash array if you want a dashed border -->
+	<!-- <collections:AvaloniaList x:TypeArguments="x:Double" x:Key="TaskBorderDashArray">
+        <x:Double>2</x:Double>
+        <x:Double>2</x:Double>
+    </collections:AvaloniaList> -->
 
 	<!-- Other Properties -->
 	<x:Double x:Key="HeaderLineThickness">1</x:Double>

@@ -124,6 +124,10 @@ public class GanttChartRenderer
                 Width = Math.Max(width, 1),
                 Height = Math.Max(layout.RowHeight - 10, 1),
                 Fill = task == selectedTask ? GetResource<ISolidColorBrush>("TaskSelectedBrush") : GetResource<ISolidColorBrush>("TaskDefaultBrush"),
+                Stroke = GetResource<ISolidColorBrush>("TaskBorderBrush"),
+                StrokeThickness = GetResource<double>("TaskBorderThickness"),
+                // Uncomment the following line if you want a dashed border
+                // StrokeDashArray = GetResource<AvaloniaList<double>>("TaskBorderDashArray"),
                 [Canvas.LeftProperty] = x,
                 [Canvas.TopProperty] = y + 5,
                 Tag = task
@@ -145,6 +149,10 @@ public class GanttChartRenderer
                     Width = Math.Max(progressWidth, 1),
                     Height = Math.Max(layout.RowHeight - 10, 1),
                     Fill = GetResource<ISolidColorBrush>("TaskProgressBrush"),
+                    Stroke = GetResource<ISolidColorBrush>("TaskBorderBrush"),
+                    StrokeThickness = GetResource<double>("TaskBorderThickness"),
+                    // Uncomment the following line if you want a dashed border
+                    // StrokeDashArray = GetResource<AvaloniaList<double>>("TaskBorderDashArray"),
                     [Canvas.LeftProperty] = x,
                     [Canvas.TopProperty] = y + 5
                 };
