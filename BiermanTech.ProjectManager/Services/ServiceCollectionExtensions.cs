@@ -15,6 +15,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ICommandFactory, CommandFactory>();
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IMessageBus, MessageBus>();
+        services.AddSingleton<TaskFileService>();
         services.AddSingleton<GanttChartRenderer>();
         services.AddSingleton<TaskDataSeeder>();
         return services;

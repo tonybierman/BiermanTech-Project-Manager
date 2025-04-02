@@ -3,11 +3,26 @@
         xmlns:vm="using:BiermanTech.ProjectManager.ViewModels"
         xmlns:controls="using:BiermanTech.ProjectManager.Controls"
         x:Class="BiermanTech.ProjectManager.Views.MainWindow"
-        Title="BiermanTech Project Manager" Width="800" Height="600"
+        Title="{Binding ProjectName}" Width="800" Height="600"
         x:DataType="vm:MainWindowViewModel">
 	<DockPanel>
 		<!-- Menu Bar -->
 		<controls:MenuBarControl x:Name="MenuBarControl" DockPanel.Dock="Top" />
+
+		<!-- Status Bar -->
+		<DockPanel DockPanel.Dock="Bottom" Background="LightGray" Height="30" LastChildFill="True">
+			<!-- Project Metadata -->
+			<StackPanel Orientation="Horizontal" Margin="5,0">
+				<TextBlock Text="Project: " FontWeight="Bold" VerticalAlignment="Center" />
+				<TextBlock Text="{Binding ProjectName}" Margin="0,0,10,0" VerticalAlignment="Center" />
+				<TextBlock Text="Author: " FontWeight="Bold" VerticalAlignment="Center" />
+				<TextBlock Text="{Binding ProjectAuthor}" VerticalAlignment="Center" />
+			</StackPanel>
+
+			<!-- Notification Area -->
+			<TextBlock x:Name="NotificationText" Text="{Binding NotificationMessage}"
+                       VerticalAlignment="Center" HorizontalAlignment="Right" Margin="5,0" />
+		</DockPanel>
 
 		<!-- Gantt Chart -->
 		<controls:GanttChartControl Tasks="{Binding Tasks}" SelectedTask="{Binding SelectedTask, Mode=TwoWay}" />

@@ -10,6 +10,7 @@ using BiermanTech.ProjectManager.Models;
 using BiermanTech.ProjectManager.Services;
 using Serilog;
 using Avalonia.Controls;
+using System.Timers;
 
 namespace BiermanTech.ProjectManager.ViewModels;
 
@@ -25,6 +26,9 @@ public class MainWindowViewModel : ViewModelBase
     private List<TaskItem> _tasks;
     private TaskItem _selectedTask;
     private IDisposable _taskChangedSubscription;
+    private Project _project;
+    private string _notificationMessage;
+    private readonly Timer _notificationTimer;
 
     public List<TaskItem> Tasks
     {
@@ -40,6 +44,15 @@ public class MainWindowViewModel : ViewModelBase
             this.RaiseAndSetIfChanged(ref _selectedTask, value);
             Log.Information("MainWindowViewModel SelectedTask changed to: {TaskName}", _selectedTask?.Name ?? "null");
         }
+    }
+
+    public string ProjectName => _project?.Name;
+    public string ProjectAuthor => _project?.Author;
+
+    public string NotificationMessage
+    {
+        get => _notificationMessage;
+        set => this.RaiseAndSetIfChanged(ref _notificationMessage, value);
     }
 
     public ReactiveCommand<Unit, Unit> CreateTaskCommand { get; }
@@ -67,6 +80,15 @@ public class MainWindowViewModel : ViewModelBase
 
         // Initialize Tasks
         _tasks = new List<TaskItem>();
+
+        // Set up notification timer (clears message after 5 seconds)
+        _notificationTimer = new Timer(5000);
+        _notificationTimer.Elapsed += (s, e) =>
+        {
+            NotificationMessage = string.Empty;
+            _notificationTimer.Stop();
+        };
+        _notificationTimer.AutoReset = false;
 
         // Subscribe to task changes from the repository
         _taskChangedSubscription = Observable.FromEventPattern<EventHandler, EventArgs>(
@@ -113,11 +135,13 @@ public class MainWindowViewModel : ViewModelBase
                     _commandManager.ExecuteCommand(command);
                     Log.Information("Publishing TaskAdded for task: {TaskName}", result.Name);
                     _messageBus.Publish(new TaskAdded(result));
+                    ShowNotification($"Task '{result.Name}' added.");
                 }
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "Error in CreateTaskCommand");
+                ShowNotification("Error adding task.");
                 throw;
             }
         });
@@ -145,11 +169,13 @@ public class MainWindowViewModel : ViewModelBase
                     _commandManager.ExecuteCommand(command);
                     Log.Information("Publishing TaskUpdated for task: {TaskName}", result.Name);
                     _messageBus.Publish(new TaskUpdated(result));
+                    ShowNotification($"Task '{result.Name}' updated.");
                 }
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "Error in UpdateTaskCommand");
+                ShowNotification("Error updating task.");
                 throw;
             }
         }, this.WhenAnyValue(x => x.SelectedTask)
@@ -174,11 +200,13 @@ public class MainWindowViewModel : ViewModelBase
                 _commandManager.ExecuteCommand(command);
                 Log.Information("Publishing TaskDeleted for task: {TaskName}", taskToDelete.Name);
                 _messageBus.Publish(new TaskDeleted(taskToDelete));
+                ShowNotification($"Task '{taskToDelete.Name}' deleted.");
                 SelectedTask = null;
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "Error in DeleteTaskCommand");
+                ShowNotification("Error deleting task.");
                 throw;
             }
         }, this.WhenAnyValue(x => x.SelectedTask)
@@ -209,22 +237,34 @@ public class MainWindowViewModel : ViewModelBase
         UndoCommand = ReactiveCommand.Create(() =>
         {
             _commandManager.Undo();
+            ShowNotification("Undo performed.");
         }, canUndoObservable);
 
         RedoCommand = ReactiveCommand.Create(() =>
         {
             _commandManager.Redo();
+            ShowNotification("Redo performed.");
         }, canRedoObservable);
     }
 
-    public void Initialize()
+    public async Task Initialize()
     {
-        _taskDataSeeder.SeedSampleData();
+        _project = await _taskDataSeeder.SeedSampleDataAsync();
         Tasks = new List<TaskItem>(_taskRepository.GetTasks());
+        this.RaisePropertyChanged(nameof(ProjectName));
+        this.RaisePropertyChanged(nameof(ProjectAuthor));
     }
 
     public void Dispose()
     {
         _taskChangedSubscription?.Dispose();
+        _notificationTimer?.Dispose();
+    }
+
+    private void ShowNotification(string message)
+    {
+        NotificationMessage = message;
+        _notificationTimer.Stop();
+        _notificationTimer.Start();
     }
 }
