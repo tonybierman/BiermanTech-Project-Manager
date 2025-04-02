@@ -11,6 +11,7 @@ using BiermanTech.ProjectManager.Services;
 using Serilog;
 using Avalonia.Controls;
 using System.Timers;
+using Avalonia.Platform.Storage;
 
 namespace BiermanTech.ProjectManager.ViewModels;
 
@@ -60,6 +61,9 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> DeleteTaskCommand { get; }
     public ReactiveCommand<Unit, Unit> UndoCommand { get; }
     public ReactiveCommand<Unit, Unit> RedoCommand { get; }
+    public ReactiveCommand<Unit, Unit> SaveProjectCommand { get; }
+    public ReactiveCommand<Unit, Unit> LoadProjectCommand { get; }
+    public ReactiveCommand<Unit, Unit> NewProjectCommand { get; }
 
     public MainWindowViewModel(
         ITaskRepository taskRepository,
@@ -245,6 +249,84 @@ public class MainWindowViewModel : ViewModelBase
             _commandManager.Redo();
             ShowNotification("Redo performed.");
         }, canRedoObservable);
+
+        SaveProjectCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            try
+            {
+                var storageProvider = _mainWindow.StorageProvider;
+                var file = await storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                {
+                    Title = "Save Project",
+                    SuggestedFileName = "project.json",
+                    FileTypeChoices = new[] { new FilePickerFileType("JSON Files") { Patterns = new[] { "*.json" } } }
+                });
+
+                if (file != null)
+                {
+                    var filePath = file.Path.LocalPath;
+                    var command = _commandFactory.CreateSaveProjectCommand(_project, filePath);
+                    _commandManager.ExecuteCommand(command);
+                    ShowNotification($"Project saved to {filePath}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error in SaveProjectCommand");
+                ShowNotification("Error saving project.");
+                throw;
+            }
+        });
+
+        LoadProjectCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            try
+            {
+                var storageProvider = _mainWindow.StorageProvider;
+                var files = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+                {
+                    Title = "Load Project",
+                    AllowMultiple = false,
+                    FileTypeFilter = new[] { new FilePickerFileType("JSON Files") { Patterns = new[] { "*.json" } } }
+                });
+
+                if (files != null && files.Count > 0)
+                {
+                    var filePath = files[0].Path.LocalPath;
+                    var command = _commandFactory.CreateLoadProjectCommand(_project, filePath);
+                    _commandManager.ExecuteCommand(command);
+                    ShowNotification($"Project loaded from {filePath}.");
+                    // Notify UI of project metadata changes
+                    this.RaisePropertyChanged(nameof(ProjectName));
+                    this.RaisePropertyChanged(nameof(ProjectAuthor));
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error in LoadProjectCommand");
+                ShowNotification("Error loading project.");
+                throw;
+            }
+        });
+
+        NewProjectCommand = ReactiveCommand.Create(() =>
+        {
+            try
+            {
+                var command = _commandFactory.CreateNewProjectCommand(_project);
+                _commandManager.ExecuteCommand(command);
+                ShowNotification("New project created.");
+                // Notify UI of project metadata changes
+                this.RaisePropertyChanged(nameof(ProjectName));
+                this.RaisePropertyChanged(nameof(ProjectAuthor));
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error in NewProjectCommand");
+                ShowNotification("Error creating new project.");
+                throw;
+            }
+        });
     }
 
     public async Task Initialize()

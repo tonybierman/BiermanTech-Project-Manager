@@ -20,11 +20,11 @@ public class MenuBarViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> DeleteTaskCommand => _mainViewModel.DeleteTaskCommand;
     public ReactiveCommand<Unit, Unit> UndoCommand => _mainViewModel.UndoCommand;
     public ReactiveCommand<Unit, Unit> RedoCommand => _mainViewModel.RedoCommand;
+    public ReactiveCommand<Unit, Unit> NewProjectCommand => _mainViewModel.NewProjectCommand;
+    public ReactiveCommand<Unit, Unit> LoadProjectCommand => _mainViewModel.LoadProjectCommand;
+    public ReactiveCommand<Unit, Unit> SaveProjectCommand => _mainViewModel.SaveProjectCommand;
 
     // MenuBar-specific commands
-    public ReactiveCommand<Unit, Unit> NewProjectCommand { get; }
-    public ReactiveCommand<Unit, Unit> OpenProjectCommand { get; }
-    public ReactiveCommand<Unit, Unit> SaveProjectCommand { get; }
     public ReactiveCommand<Unit, Unit> ExitCommand { get; }
     public ReactiveCommand<Unit, Unit> AboutCommand { get; }
 
@@ -46,24 +46,6 @@ public class MenuBarViewModel : ViewModelBase
             {
                 SelectedTask = selectedTask;
             });
-
-        NewProjectCommand = ReactiveCommand.Create(() =>
-        {
-            Log.Information("New Project command executed");
-            // TODO: Implement new project functionality
-        });
-
-        OpenProjectCommand = ReactiveCommand.Create(() =>
-        {
-            Log.Information("Open Project command executed");
-            // TODO: Implement open project functionality
-        });
-
-        SaveProjectCommand = ReactiveCommand.Create(() =>
-        {
-            Log.Information("Save Project command executed");
-            // TODO: Implement save project functionality
-        });
 
         ExitCommand = ReactiveCommand.Create(() =>
         {

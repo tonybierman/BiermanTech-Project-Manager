@@ -13,7 +13,7 @@
 		<!-- File Menu -->
 		<MenuItem Header="_File">
 			<MenuItem Header="_New Project" Command="{Binding NewProjectCommand}" />
-			<MenuItem Header="_Open Project" Command="{Binding OpenProjectCommand}" />
+			<MenuItem Header="_Load Project" Command="{Binding LoadProjectCommand}" />
 			<MenuItem Header="_Save Project" Command="{Binding SaveProjectCommand}" />
 			<Separator />
 			<MenuItem Header="E_xit" Command="{Binding ExitCommand}" />

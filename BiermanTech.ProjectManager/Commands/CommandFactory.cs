@@ -7,10 +7,12 @@ namespace BiermanTech.ProjectManager.Commands;
 public class CommandFactory : ICommandFactory
 {
     private readonly ITaskRepository _taskRepository;
+    private readonly TaskFileService _taskFileService;
 
-    public CommandFactory(ITaskRepository taskRepository)
+    public CommandFactory(ITaskRepository taskRepository, TaskFileService taskFileService)
     {
         _taskRepository = taskRepository;
+        _taskFileService = taskFileService;
     }
 
     public ICommand CreateAddTaskCommand(TaskItem task)
@@ -26,5 +28,20 @@ public class CommandFactory : ICommandFactory
     public ICommand CreateDeleteTaskCommand(TaskItem task, int index, List<TaskItem> dependentTasks)
     {
         return new DeleteTaskCommand(task, index, dependentTasks, _taskRepository);
+    }
+
+    public ICommand CreateSaveProjectCommand(Project project, string filePath)
+    {
+        return new SaveProjectCommand(project, _taskRepository, _taskFileService, filePath);
+    }
+
+    public ICommand CreateLoadProjectCommand(Project project, string filePath)
+    {
+        return new LoadProjectCommand(project, _taskRepository, _taskFileService, filePath);
+    }
+
+    public ICommand CreateNewProjectCommand(Project project)
+    {
+        return new NewProjectCommand(project, _taskRepository);
     }
 }

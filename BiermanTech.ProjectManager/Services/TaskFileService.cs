@@ -11,24 +11,25 @@ namespace BiermanTech.ProjectManager.Services;
 
 public class TaskFileService
 {
-    private readonly string _filePath;
+    private readonly string _defaultFilePath;
 
-    public TaskFileService(string filePath = "default_tasks.json")
+    public TaskFileService(string defaultFilePath = "default_tasks.json")
     {
-        _filePath = filePath;
+        _defaultFilePath = defaultFilePath;
     }
 
-    public async Task<Project> LoadProjectAsync()
+    public async Task<Project> LoadProjectAsync(string filePath = null)
     {
+        filePath ??= _defaultFilePath;
         try
         {
-            if (!File.Exists(_filePath))
+            if (!File.Exists(filePath))
             {
-                Log.Information("Project file {FilePath} does not exist. Returning empty project.", _filePath);
+                Log.Information("Project file {FilePath} does not exist. Returning empty project.", filePath);
                 return new Project { Name = "Default Project", Author = "Unknown" };
             }
 
-            var json = await File.ReadAllTextAsync(_filePath);
+            var json = await File.ReadAllTextAsync(filePath);
             var project = JsonSerializer.Deserialize<Project>(json, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
@@ -51,18 +52,19 @@ public class TaskFileService
             }
 
             Log.Information("Loaded project '{ProjectName}' by {Author} with {TaskCount} tasks from {FilePath}",
-                project.Name, project.Author, project.TaskItems.Count, _filePath);
+                project.Name, project.Author, project.TaskItems.Count, filePath);
             return project;
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to load project from {FilePath}", _filePath);
+            Log.Error(ex, "Failed to load project from {FilePath}", filePath);
             throw;
         }
     }
 
-    public async Task SaveProjectAsync(Project project)
+    public async Task SaveProjectAsync(Project project, string filePath = null)
     {
+        filePath ??= _defaultFilePath;
         try
         {
             // Prepare tasks for serialization by setting DependsOnId
@@ -76,13 +78,13 @@ public class TaskFileService
                 WriteIndented = true
             });
 
-            await File.WriteAllTextAsync(_filePath, json);
+            await File.WriteAllTextAsync(filePath, json);
             Log.Information("Saved project '{ProjectName}' by {Author} with {TaskCount} tasks to {FilePath}",
-                project.Name, project.Author, project.TaskItems.Count, _filePath);
+                project.Name, project.Author, project.TaskItems.Count, filePath);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to save project to {FilePath}", _filePath);
+            Log.Error(ex, "Failed to save project to {FilePath}", filePath);
             throw;
         }
     }
