@@ -67,17 +67,11 @@ public class TaskFileService
         filePath ??= _defaultFilePath;
         try
         {
-            // Prepare tasks for serialization by setting DependsOnId
-            foreach (var task in project.TaskItems)
-            {
-                task.DependsOnId = task.DependsOn?.Id;
-            }
-
             var json = JsonSerializer.Serialize(project, new JsonSerializerOptions
             {
-                WriteIndented = true
+                WriteIndented = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
-
             await File.WriteAllTextAsync(filePath, json);
             Log.Information("Saved project '{ProjectName}' by {Author} with {TaskCount} tasks to {FilePath}",
                 project.Name, project.Author, project.TaskItems.Count, filePath);

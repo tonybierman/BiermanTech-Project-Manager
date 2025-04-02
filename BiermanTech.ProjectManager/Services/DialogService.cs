@@ -19,4 +19,21 @@ public class DialogService : IDialogService
 
         return viewModel.GetResult();
     }
+
+    public async Task<ProjectNarrative> ShowNarrativeDialog(ProjectNarrative narrative, Window parent)
+    {
+        var dialog = new NarrativeDialog();
+        var viewModel = new NarrativeDialogViewModel(narrative);
+        dialog.DataContext = viewModel;
+
+        await dialog.ShowDialog(parent);
+
+        return viewModel.GetResult();
+    }
+
+    public async Task ShowAboutDialog(Window owner)
+    {
+        //var dialog = new AboutDialog();
+        //await dialog.ShowDialog(owner);
+    }
 }

@@ -11,4 +11,5 @@ public interface ICommandFactory
     ICommand CreateSaveProjectCommand(Project project, string filePath);
     ICommand CreateLoadProjectCommand(Project project, string filePath);
     ICommand CreateNewProjectCommand(Project project);
+    ICommand CreateEditNarrativeCommand(Project project, ProjectNarrative originalNarrative, ProjectNarrative updatedNarrative);
 }

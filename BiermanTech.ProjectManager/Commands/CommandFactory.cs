@@ -44,4 +44,9 @@ public class CommandFactory : ICommandFactory
     {
         return new NewProjectCommand(project, _taskRepository);
     }
+
+    public ICommand CreateEditNarrativeCommand(Project project, ProjectNarrative originalNarrative, ProjectNarrative updatedNarrative)
+    {
+        return new EditNarrativeCommand(project, originalNarrative, updatedNarrative);
+    }
 }

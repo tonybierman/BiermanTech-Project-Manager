@@ -27,13 +27,15 @@
                       IsEnabled="{Binding RedoCommand.CanExecute}" />
 		</MenuItem>
 
-		<!-- Task Menu -->
-		<MenuItem Header="_Task">
+		<!-- Project Menu -->
+		<MenuItem Header="_Project">
 			<MenuItem Header="_Add Task" Command="{Binding CreateTaskCommand}" />
 			<MenuItem Header="_Update Task" Command="{Binding UpdateTaskCommand}"
                       IsEnabled="{Binding SelectedTask, Converter={StaticResource IsNotNullConverter}}" />
 			<MenuItem Header="_Delete Task" Command="{Binding DeleteTaskCommand}"
                       IsEnabled="{Binding SelectedTask, Converter={StaticResource IsNotNullConverter}}" />
+			<MenuItem Header="_Edit Narrative" Command="{Binding EditNarrativeCommand}"
+                      IsEnabled="{Binding EditNarrativeCommand.CanExecute}" />
 		</MenuItem>
 
 		<!-- Help Menu -->

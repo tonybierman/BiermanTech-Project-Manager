@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using BiermanTech.ProjectManager.Commands;
 using BiermanTech.ProjectManager.Models;
@@ -15,7 +16,7 @@ using Avalonia.Platform.Storage;
 
 namespace BiermanTech.ProjectManager.ViewModels;
 
-public class MainWindowViewModel : ViewModelBase
+public class MainWindowViewModel : ViewModelBase, IDisposable
 {
     private readonly ITaskRepository _taskRepository;
     private readonly ICommandManager _commandManager;
@@ -30,6 +31,7 @@ public class MainWindowViewModel : ViewModelBase
     private Project _project;
     private string _notificationMessage;
     private readonly Timer _notificationTimer;
+    private readonly BehaviorSubject<bool> _editNarrativeCanExecuteSubject;
 
     public List<TaskItem> Tasks
     {
@@ -47,8 +49,24 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 
-    public string ProjectName => _project?.Name;
-    public string ProjectAuthor => _project?.Author;
+    public Project Project
+    {
+        get => _project;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _project, value);
+            // Update CanExecute state when Project changes
+            _editNarrativeCanExecuteSubject.OnNext(_project != null);
+        }
+    }
+
+    public string ProjectName => Project?.Name;
+    public string ProjectAuthor => Project?.Author;
+    public ProjectNarrative Narrative => Project?.Narrative;
+    public string ProjectSituation => Narrative?.Situation ?? string.Empty;
+    public string ProjectCurrentState => Narrative?.CurrentState ?? string.Empty;
+    public string ProjectPlan => Narrative?.Plan ?? string.Empty;
+    public string ProjectResults => Narrative?.Results ?? string.Empty;
 
     public string NotificationMessage
     {
@@ -64,6 +82,7 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> SaveProjectCommand { get; }
     public ReactiveCommand<Unit, Unit> LoadProjectCommand { get; }
     public ReactiveCommand<Unit, Unit> NewProjectCommand { get; }
+    public ReactiveCommand<Unit, Unit> EditNarrativeCommand { get; }
 
     public MainWindowViewModel(
         ITaskRepository taskRepository,
@@ -81,6 +100,9 @@ public class MainWindowViewModel : ViewModelBase
         _messageBus = messageBus;
         _taskDataSeeder = taskDataSeeder;
         _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
+
+        // Initialize CanExecute subject
+        _editNarrativeCanExecuteSubject = new BehaviorSubject<bool>(false);
 
         // Initialize Tasks
         _tasks = new List<TaskItem>();
@@ -216,7 +238,7 @@ public class MainWindowViewModel : ViewModelBase
         }, this.WhenAnyValue(x => x.SelectedTask)
             .Select(x => x != null)
             .Do(canExecute => Log.Information("DeleteTaskCommand CanExecute: {CanExecute}", canExecute))
-            .Catch<bool, Exception>(ex =>
+            .Catch <bool, Exception > (ex =>
             {
                 Log.Error(ex, "Error in DeleteTaskCommand CanExecute");
                 return Observable.Return(false);
@@ -265,7 +287,7 @@ public class MainWindowViewModel : ViewModelBase
                 if (file != null)
                 {
                     var filePath = file.Path.LocalPath;
-                    var command = _commandFactory.CreateSaveProjectCommand(_project, filePath);
+                    var command = _commandFactory.CreateSaveProjectCommand(Project, filePath);
                     _commandManager.ExecuteCommand(command);
                     ShowNotification($"Project saved to {filePath}.");
                 }
@@ -293,12 +315,18 @@ public class MainWindowViewModel : ViewModelBase
                 if (files != null && files.Count > 0)
                 {
                     var filePath = files[0].Path.LocalPath;
-                    var command = _commandFactory.CreateLoadProjectCommand(_project, filePath);
+                    var command = _commandFactory.CreateLoadProjectCommand(Project, filePath);
                     _commandManager.ExecuteCommand(command);
                     ShowNotification($"Project loaded from {filePath}.");
                     // Notify UI of project metadata changes
                     this.RaisePropertyChanged(nameof(ProjectName));
                     this.RaisePropertyChanged(nameof(ProjectAuthor));
+                    // Notify UI of narrative changes
+                    this.RaisePropertyChanged(nameof(Narrative));
+                    this.RaisePropertyChanged(nameof(ProjectSituation));
+                    this.RaisePropertyChanged(nameof(ProjectCurrentState));
+                    this.RaisePropertyChanged(nameof(ProjectPlan));
+                    this.RaisePropertyChanged(nameof(ProjectResults));
                 }
             }
             catch (Exception ex)
@@ -313,12 +341,18 @@ public class MainWindowViewModel : ViewModelBase
         {
             try
             {
-                var command = _commandFactory.CreateNewProjectCommand(_project);
+                var command = _commandFactory.CreateNewProjectCommand(Project);
                 _commandManager.ExecuteCommand(command);
                 ShowNotification("New project created.");
                 // Notify UI of project metadata changes
                 this.RaisePropertyChanged(nameof(ProjectName));
                 this.RaisePropertyChanged(nameof(ProjectAuthor));
+                // Notify UI of narrative changes
+                this.RaisePropertyChanged(nameof(Narrative));
+                this.RaisePropertyChanged(nameof(ProjectSituation));
+                this.RaisePropertyChanged(nameof(ProjectCurrentState));
+                this.RaisePropertyChanged(nameof(ProjectPlan));
+                this.RaisePropertyChanged(nameof(ProjectResults));
             }
             catch (Exception ex)
             {
@@ -327,23 +361,68 @@ public class MainWindowViewModel : ViewModelBase
                 throw;
             }
         });
+
+        EditNarrativeCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            try
+            {
+                if (Project == null)
+                {
+                    Log.Warning("Cannot edit narrative: No project loaded.");
+                    ShowNotification("No project loaded.");
+                    return;
+                }
+
+                var originalNarrative = Project.Narrative ?? new ProjectNarrative();
+                var result = await _dialogService.ShowNarrativeDialog(originalNarrative, _mainWindow);
+                if (result != null)
+                {
+                    var command = _commandFactory.CreateEditNarrativeCommand(Project, originalNarrative, result);
+                    _commandManager.ExecuteCommand(command);
+                    Log.Information("Project narrative updated.");
+                    // Notify UI of narrative changes
+                    this.RaisePropertyChanged(nameof(Narrative));
+                    this.RaisePropertyChanged(nameof(ProjectSituation));
+                    this.RaisePropertyChanged(nameof(ProjectCurrentState));
+                    this.RaisePropertyChanged(nameof(ProjectPlan));
+                    this.RaisePropertyChanged(nameof(ProjectResults));
+                    // Uncomment to save the project automatically
+                    // TODO: await SaveProjectCommand.ExecuteAsync();
+                    ShowNotification("Project narrative updated.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error in EditNarrativeCommand");
+                ShowNotification("Error updating project narrative.");
+                throw;
+            }
+        }, _editNarrativeCanExecuteSubject
+            .Do(canExecute => Log.Information("EditNarrativeCommand CanExecute: {CanExecute}", canExecute)));
     }
 
     public async Task Initialize()
     {
-        _project = await _taskDataSeeder.SeedSampleDataAsync();
+        Project = await _taskDataSeeder.SeedSampleDataAsync();
         Tasks = new List<TaskItem>(_taskRepository.GetTasks());
         this.RaisePropertyChanged(nameof(ProjectName));
         this.RaisePropertyChanged(nameof(ProjectAuthor));
+        // Notify UI of narrative changes
+        this.RaisePropertyChanged(nameof(Narrative));
+        this.RaisePropertyChanged(nameof(ProjectSituation));
+        this.RaisePropertyChanged(nameof(ProjectCurrentState));
+        this.RaisePropertyChanged(nameof(ProjectPlan));
+        this.RaisePropertyChanged(nameof(ProjectResults));
     }
 
     public void Dispose()
     {
         _taskChangedSubscription?.Dispose();
         _notificationTimer?.Dispose();
+        _editNarrativeCanExecuteSubject?.Dispose();
     }
 
-    private void ShowNotification(string message)
+    public void ShowNotification(string message)
     {
         NotificationMessage = message;
         _notificationTimer.Stop();

@@ -27,7 +27,6 @@ public partial class MainWindow : Window
             App.ServiceProvider.GetService<TaskDataSeeder>(),
             this
         );
-        DataContext = _viewModel;
 
         // Set up MenuBarControl's DataContext
         var menuBarControl = this.FindControl<MenuBarControl>("MenuBarControl");
@@ -40,6 +39,7 @@ public partial class MainWindow : Window
             Log.Error("Failed to find MenuBarControl in MainWindow");
         }
 
+        DataContext = _viewModel;
         _viewModel.Initialize();
     }
 

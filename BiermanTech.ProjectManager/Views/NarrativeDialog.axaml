@@ -1,0 +1,47 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:BiermanTech.ProjectManager.ViewModels"
+        x:Class="BiermanTech.ProjectManager.Views.NarrativeDialog"
+        x:DataType="vm:NarrativeDialogViewModel"
+        Title="Edit Project Narrative" Width="500" Height="400"
+        WindowStartupLocation="CenterOwner">
+	<Grid Margin="10">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<TextBlock Grid.Row="0" Text="Situation:"/>
+		<TextBox Grid.Row="1" Text="{Binding Situation, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"/>
+
+		<TextBlock Grid.Row="2" Text="Current State:" Margin="0,10,0,0"/>
+		<TextBox Grid.Row="3" Text="{Binding CurrentState, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"/>
+
+		<TextBlock Grid.Row="4" Text="Plan:" Margin="0,10,0,0"/>
+		<TextBox Grid.Row="5" Text="{Binding Plan, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"/>
+
+		<TextBlock Grid.Row="6" Text="Results:" Margin="0,10,0,0"/>
+		<TextBox Grid.Row="7" Text="{Binding Results, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"/>
+
+		<TextBlock Grid.Row="8" Text="{Binding ErrorMessage}" Foreground="Red" Margin="0,10,0,0"
+                   IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+		<StackPanel Grid.Row="9" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+			<Button Content="Save" Command="{Binding SaveCommand}" IsEnabled="{Binding SaveCommand.CanExecute}" Margin="0,0,10,0"/>
+			<Button Content="Cancel" Command="{Binding CancelCommand}"/>
+		</StackPanel>
+	</Grid>
+</Window>

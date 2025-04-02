@@ -7,7 +7,7 @@
       "Name": "Planning",
       "StartDate": "2025-04-01T00:00:00+00:00",
       "Duration": "3.00:00:00",
-      "PercentComplete": 0,
+      "PercentComplete": 50,
       "DependsOnId": null
     },
     {
@@ -98,5 +98,11 @@
       "PercentComplete": 0,
       "DependsOnId": "e1f2a3b4-c5d6-7890-4567-123456789012"
     }
-  ]
+  ],
+  "Narrative": {
+    "Situation": "The team identified a need to develop a new project management tool to streamline workflows and improve collaboration across departments.",
+    "CurrentState": "The project is in the development phase, with several tasks completed, including planning and database setup, which is 50% complete.",
+    "Plan": "The team plans to complete the remaining development tasks, conduct thorough testing, and deploy the tool by the end of April 2025.",
+    "Results": "Results will be evaluated post-launch, focusing on user adoption rates and productivity improvements."
+  }
 }

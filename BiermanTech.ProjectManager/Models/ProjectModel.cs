@@ -10,4 +10,7 @@ public class Project
 
     [JsonPropertyName("Tasks")]
     public List<TaskItem> TaskItems { get; set; } = new List<TaskItem>();
+
+    [JsonPropertyName("Narrative")]
+    public ProjectNarrative Narrative { get; set; } = new ProjectNarrative();
 }
