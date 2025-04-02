@@ -46,7 +46,7 @@ BiermanTech Project Manager is a desktop application for managing projects using
 
 Screenshots
 
-[Gantt Chart View](screenshot.png)
+[Gantt Chart View](screenshot.pdf)
 
 Prerequisites
 

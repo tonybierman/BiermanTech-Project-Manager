@@ -13,6 +13,7 @@ using Serilog;
 using Avalonia.Controls;
 using System.Timers;
 using Avalonia.Platform.Storage;
+using Avalonia.Controls.ApplicationLifetimes;
 
 namespace BiermanTech.ProjectManager.ViewModels;
 
@@ -79,12 +80,12 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     public ReactiveCommand<Unit, Unit> DeleteTaskCommand { get; }
     public ReactiveCommand<Unit, Unit> UndoCommand { get; }
     public ReactiveCommand<Unit, Unit> RedoCommand { get; }
-    public ReactiveCommand<Unit, Unit> SaveProjectCommand { get; } // New Save command
-    public ReactiveCommand<Unit, Unit> SaveAsProjectCommand { get; } // Renamed SaveAs command
+    public ReactiveCommand<Unit, Unit> SaveProjectCommand { get; } 
+    public ReactiveCommand<Unit, Unit> SaveAsProjectCommand { get; } 
     public ReactiveCommand<Unit, Unit> LoadProjectCommand { get; }
     public ReactiveCommand<Unit, Unit> NewProjectCommand { get; }
     public ReactiveCommand<Unit, Unit> EditNarrativeCommand { get; }
-
+    public ReactiveCommand<Unit, Unit> SaveAsPdfCommand { get; } 
     public MainWindowViewModel(
         ITaskRepository taskRepository,
         ICommandManager commandManager,
@@ -423,7 +424,36 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
             }
         }, _editNarrativeCanExecuteSubject
             .Do(canExecute => Log.Information("EditNarrativeCommand CanExecute: {CanExecute}", canExecute)));
+
+        SaveAsPdfCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            try
+            {
+                var storageProvider = _mainWindow.StorageProvider;
+                var file = await storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                {
+                    Title = "Save Window as PDF",
+                    SuggestedFileName = $"{_project.Name}.pdf",
+                    FileTypeChoices = new[] { new FilePickerFileType("PDF Files") { Patterns = new[] { "*.pdf" } } }
+                });
+
+                if (file != null)
+                {
+                    AvaloniaUI.PrintToPDF.Print.ToFile(
+                        file.Path.LocalPath,
+                       _mainWindow
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error in SaveAsImageCommand");
+                ShowNotification("Error saving window as image.");
+                throw;
+            }
+        });
     }
+
 
     public async Task Initialize()
     {

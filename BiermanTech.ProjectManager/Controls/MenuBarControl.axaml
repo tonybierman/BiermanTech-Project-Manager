@@ -16,6 +16,7 @@
 			<MenuItem Header="_Load Project" Command="{Binding LoadProjectCommand}" />
 			<MenuItem Header="_Save Project" Command="{Binding SaveProjectCommand}" />
 			<MenuItem Header="Save Project _As" Command="{Binding SaveAsProjectCommand}" />
+			<MenuItem Header="Save as _Pdf" Command="{Binding SaveAsPdfCommand}" />
 			<Separator />
 			<MenuItem Header="E_xit" Command="{Binding ExitCommand}" />
 		</MenuItem>

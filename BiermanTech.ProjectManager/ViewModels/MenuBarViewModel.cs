@@ -25,6 +25,7 @@ public class MenuBarViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> SaveProjectCommand => _mainViewModel.SaveProjectCommand;
     public ReactiveCommand<Unit, Unit> SaveAsProjectCommand => _mainViewModel.SaveAsProjectCommand;
     public ReactiveCommand<Unit, Unit> EditNarrativeCommand => _mainViewModel.EditNarrativeCommand;
+    public ReactiveCommand<Unit, Unit> SaveAsPdfCommand => _mainViewModel.SaveAsPdfCommand;
 
     // MenuBar-specific commands
     public ReactiveCommand<Unit, Unit> ExitCommand { get; }
