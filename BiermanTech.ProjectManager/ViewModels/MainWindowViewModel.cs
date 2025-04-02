@@ -32,6 +32,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private string _notificationMessage;
     private readonly Timer _notificationTimer;
     private readonly BehaviorSubject<bool> _editNarrativeCanExecuteSubject;
+    private string _currentFilePath; // Track the current file path
 
     public List<TaskItem> Tasks
     {
@@ -55,7 +56,6 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         set
         {
             this.RaiseAndSetIfChanged(ref _project, value);
-            // Update CanExecute state when Project changes
             _editNarrativeCanExecuteSubject.OnNext(_project != null);
         }
     }
@@ -79,7 +79,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     public ReactiveCommand<Unit, Unit> DeleteTaskCommand { get; }
     public ReactiveCommand<Unit, Unit> UndoCommand { get; }
     public ReactiveCommand<Unit, Unit> RedoCommand { get; }
-    public ReactiveCommand<Unit, Unit> SaveProjectCommand { get; }
+    public ReactiveCommand<Unit, Unit> SaveProjectCommand { get; } // New Save command
+    public ReactiveCommand<Unit, Unit> SaveAsProjectCommand { get; } // Renamed SaveAs command
     public ReactiveCommand<Unit, Unit> LoadProjectCommand { get; }
     public ReactiveCommand<Unit, Unit> NewProjectCommand { get; }
     public ReactiveCommand<Unit, Unit> EditNarrativeCommand { get; }
@@ -238,7 +239,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         }, this.WhenAnyValue(x => x.SelectedTask)
             .Select(x => x != null)
             .Do(canExecute => Log.Information("DeleteTaskCommand CanExecute: {CanExecute}", canExecute))
-            .Catch <bool, Exception > (ex =>
+            .Catch<bool, Exception>(ex =>
             {
                 Log.Error(ex, "Error in DeleteTaskCommand CanExecute");
                 return Observable.Return(false);
@@ -276,25 +277,48 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         {
             try
             {
+                if (string.IsNullOrEmpty(_currentFilePath))
+                {
+                    // If no file path is set, fall back to SaveAs behavior
+                    await SaveAsProjectCommand.Execute();
+                    return;
+                }
+
+                var command = _commandFactory.CreateSaveProjectCommand(Project, _currentFilePath);
+                _commandManager.ExecuteCommand(command);
+                ShowNotification($"Project saved to {_currentFilePath}.");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error in SaveProjectCommand");
+                ShowNotification("Error saving project.");
+                throw;
+            }
+        });
+
+        SaveAsProjectCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            try
+            {
                 var storageProvider = _mainWindow.StorageProvider;
                 var file = await storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
                 {
-                    Title = "Save Project",
+                    Title = "Save Project As",
                     SuggestedFileName = "project.json",
                     FileTypeChoices = new[] { new FilePickerFileType("JSON Files") { Patterns = new[] { "*.json" } } }
                 });
 
                 if (file != null)
                 {
-                    var filePath = file.Path.LocalPath;
-                    var command = _commandFactory.CreateSaveProjectCommand(Project, filePath);
+                    _currentFilePath = file.Path.LocalPath;
+                    var command = _commandFactory.CreateSaveProjectCommand(Project, _currentFilePath);
                     _commandManager.ExecuteCommand(command);
-                    ShowNotification($"Project saved to {filePath}.");
+                    ShowNotification($"Project saved to {_currentFilePath}.");
                 }
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error in SaveProjectCommand");
+                Log.Error(ex, "Error in SaveAsProjectCommand");
                 ShowNotification("Error saving project.");
                 throw;
             }
@@ -314,10 +338,10 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
 
                 if (files != null && files.Count > 0)
                 {
-                    var filePath = files[0].Path.LocalPath;
-                    var command = _commandFactory.CreateLoadProjectCommand(Project, filePath);
+                    _currentFilePath = files[0].Path.LocalPath;
+                    var command = _commandFactory.CreateLoadProjectCommand(Project, _currentFilePath);
                     _commandManager.ExecuteCommand(command);
-                    ShowNotification($"Project loaded from {filePath}.");
+                    ShowNotification($"Project loaded from {_currentFilePath}.");
                     // Notify UI of project metadata changes
                     this.RaisePropertyChanged(nameof(ProjectName));
                     this.RaisePropertyChanged(nameof(ProjectAuthor));
@@ -343,6 +367,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
             {
                 var command = _commandFactory.CreateNewProjectCommand(Project);
                 _commandManager.ExecuteCommand(command);
+                _currentFilePath = null; // Reset file path for new project
                 ShowNotification("New project created.");
                 // Notify UI of project metadata changes
                 this.RaisePropertyChanged(nameof(ProjectName));
@@ -386,9 +411,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
                     this.RaisePropertyChanged(nameof(ProjectCurrentState));
                     this.RaisePropertyChanged(nameof(ProjectPlan));
                     this.RaisePropertyChanged(nameof(ProjectResults));
-                    // Uncomment to save the project automatically
-                    // TODO: await SaveProjectCommand.ExecuteAsync();
-                    ShowNotification("Project narrative updated.");
+                    await SaveProjectCommand.Execute();
+                    ShowNotification("Project narrative updated and saved.");
                 }
             }
             catch (Exception ex)
