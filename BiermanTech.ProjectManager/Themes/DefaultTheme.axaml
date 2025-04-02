@@ -5,15 +5,15 @@
 	<SolidColorBrush x:Key="HeaderBackgroundBrush" Color="LightGray"/>
 	<SolidColorBrush x:Key="TaskListBackgroundBrush" Color="#A9A9A9"/>
 	<SolidColorBrush x:Key="GanttCanvasBackgroundBrush" Color="#F0F0F0"/>
-	<SolidColorBrush x:Key="TaskDefaultBrush" Color="LightBlue"/>
+	<SolidColorBrush x:Key="TaskProgressBrush" Color="DarkGreen"/>
 	<SolidColorBrush x:Key="TaskSelectedBrush" Color="Yellow"/>
-	<VisualBrush x:Key="TaskProgressBrush" TileMode="Tile" DestinationRect="0,0,10,10">
+	<VisualBrush x:Key="TaskDefaultBrush" TileMode="Tile" DestinationRect="0,0,10,10">
 		<VisualBrush.Visual>
 			<Canvas Width="10" Height="10" Background="Transparent">
 				<!-- Diagonal line from bottom-left to top-right -->
 				<Line StartPoint="0,10" EndPoint="10,0" Stroke="DarkGreen" StrokeThickness="1"/>
 				<!-- Optional: Add a second line for a crosshatch effect -->
-				 <Line StartPoint="0,0" EndPoint="10,10" Stroke="DarkGreen" StrokeThickness="1"/> 
+				<Line StartPoint="0,0" EndPoint="10,10" Stroke="DarkGreen" StrokeThickness="1"/>
 			</Canvas>
 		</VisualBrush.Visual>
 	</VisualBrush>

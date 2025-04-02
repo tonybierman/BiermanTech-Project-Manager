@@ -124,7 +124,7 @@ public class GanttChartRenderer
             {
                 Width = Math.Max(width, 1),
                 Height = Math.Max(layout.RowHeight - 10, 1),
-                Fill = task == selectedTask ? GetResource<ISolidColorBrush>("TaskSelectedBrush") : GetResource<ISolidColorBrush>("TaskDefaultBrush"),
+                Fill = task == selectedTask ? GetResource<ISolidColorBrush>("TaskSelectedBrush") : GetResource<VisualBrush>("TaskDefaultBrush"),
                 Stroke = GetResource<ISolidColorBrush>("TaskBorderBrush"),
                 StrokeThickness = GetResource<double>("TaskBorderThickness"),
                 // Uncomment the following line if you want a dashed border
@@ -152,7 +152,7 @@ public class GanttChartRenderer
                 {
                     Width = Math.Max(progressWidth, 1),
                     Height = Math.Max(layout.RowHeight - 10, 1),
-                    Fill = GetResource<VisualBrush>("TaskProgressBrush"),
+                    Fill = GetResource<ISolidColorBrush>("TaskProgressBrush"),
                     // No border on the progress bar to make it appear as part of the task bar
                     [Canvas.LeftProperty] = x,
                     [Canvas.TopProperty] = y + 5
