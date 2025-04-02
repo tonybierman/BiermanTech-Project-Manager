@@ -1,4 +1,5 @@
 ﻿using Avalonia;
+using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Media;
@@ -10,6 +11,22 @@ namespace BiermanTech.ProjectManager.Services;
 
 public class GanttChartRenderer
 {
+    private readonly IResourceHost _resourceHost;
+
+    public GanttChartRenderer(IResourceHost resourceHost)
+    {
+        _resourceHost = resourceHost ?? throw new ArgumentNullException(nameof(resourceHost));
+    }
+
+    private T GetResource<T>(string key)
+    {
+        if (_resourceHost.TryFindResource(key, out var resource) && resource is T typedResource)
+        {
+            return typedResource;
+        }
+        throw new InvalidOperationException($"Resource '{key}' not found or is of incorrect type.");
+    }
+
     public (double X, double Width, double Y) CalculateTaskPosition(TaskItem task, DateTimeOffset minDate, double pixelsPerDay, double rowHeight, int rowIndex)
     {
         double x = (task.StartDate - minDate).TotalDays * pixelsPerDay;
@@ -58,8 +75,8 @@ public class GanttChartRenderer
             {
                 StartPoint = new Point(x, 0),
                 EndPoint = new Point(x, layout.HeaderHeight),
-                Stroke = Brushes.Gray,
-                StrokeThickness = 1
+                Stroke = GetResource<ISolidColorBrush>("DependencyLineBrush"), // Reusing DependencyLineBrush for consistency
+                StrokeThickness = GetResource<double>("HeaderLineThickness")
             };
             headerCanvas.Children.Add(line);
 
@@ -71,11 +88,11 @@ public class GanttChartRenderer
                     var monthText = new TextBlock
                     {
                         Text = monthName,
-                        Foreground = Brushes.Black,
+                        Foreground = GetResource<ISolidColorBrush>("TextForegroundBrush"),
                         [Canvas.LeftProperty] = x + 2,
                         [Canvas.TopProperty] = 5,
-                        FontSize = 12,
-                        FontWeight = FontWeight.Bold
+                        FontSize = GetResource<double>("MonthTextFontSize"),
+                        FontWeight = GetResource<FontWeight>("HeaderFontWeight")
                     };
                     headerCanvas.Children.Add(monthText);
                     lastMonthDisplayed = monthName;
@@ -85,10 +102,10 @@ public class GanttChartRenderer
             var dayText = new TextBlock
             {
                 Text = date.ToString("dd"),
-                Foreground = Brushes.Black,
+                Foreground = GetResource<ISolidColorBrush>("TextForegroundBrush"),
                 [Canvas.LeftProperty] = x + 2,
                 [Canvas.TopProperty] = dayTextTop + 5,
-                FontSize = 10
+                FontSize = GetResource<double>("DayTextFontSize")
             };
             headerCanvas.Children.Add(dayText);
         }
@@ -106,7 +123,7 @@ public class GanttChartRenderer
             {
                 Width = Math.Max(width, 1),
                 Height = Math.Max(layout.RowHeight - 10, 1),
-                Fill = task == selectedTask ? Brushes.Yellow : Brushes.LightBlue,
+                Fill = task == selectedTask ? GetResource<ISolidColorBrush>("TaskSelectedBrush") : GetResource<ISolidColorBrush>("TaskDefaultBrush"),
                 [Canvas.LeftProperty] = x,
                 [Canvas.TopProperty] = y + 5,
                 Tag = task
@@ -127,7 +144,7 @@ public class GanttChartRenderer
                 {
                     Width = Math.Max(progressWidth, 1),
                     Height = Math.Max(layout.RowHeight - 10, 1),
-                    Fill = Brushes.Blue,
+                    Fill = GetResource<ISolidColorBrush>("TaskProgressBrush"),
                     [Canvas.LeftProperty] = x,
                     [Canvas.TopProperty] = y + 5
                 };
@@ -148,9 +165,9 @@ public class GanttChartRenderer
             {
                 StartPoint = new Point(todayX, 0),
                 EndPoint = new Point(todayX, layout.ChartHeight),
-                Stroke = Brushes.Red,
-                StrokeThickness = 2,
-                StrokeDashArray = new Avalonia.Collections.AvaloniaList<double> { 4, 4 }
+                Stroke = GetResource<ISolidColorBrush>("TodayLineBrush"),
+                StrokeThickness = GetResource<double>("TodayLineThickness"),
+                StrokeDashArray = GetResource<AvaloniaList<double>>("TodayLineDashArray")
             };
             ganttCanvas.Children.Add(todayLine);
         }
@@ -178,7 +195,7 @@ public class GanttChartRenderer
                                 new Point(end.X, end.Y),
                                 new Point(end.X, start.Y + (end.Y - start.Y) / 2)
                             },
-                            Fill = Brushes.Black
+                            Fill = GetResource<ISolidColorBrush>("DependencyLineBrush")
                         };
                         ganttCanvas.Children.Add(arrow);
                     }
@@ -188,8 +205,8 @@ public class GanttChartRenderer
                         {
                             StartPoint = start,
                             EndPoint = end,
-                            Stroke = Brushes.Black,
-                            StrokeThickness = 1
+                            Stroke = GetResource<ISolidColorBrush>("DependencyLineBrush"),
+                            StrokeThickness = GetResource<double>("DependencyLineThickness")
                         };
                         ganttCanvas.Children.Add(line);
                     }

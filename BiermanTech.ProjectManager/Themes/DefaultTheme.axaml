@@ -1,0 +1,26 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:collections="clr-namespace:Avalonia.Collections;assembly=Avalonia.Base">
+	<!-- Colors -->
+	<SolidColorBrush x:Key="HeaderBackgroundBrush" Color="LightGray"/>
+	<SolidColorBrush x:Key="TaskListBackgroundBrush" Color="#A9A9A9"/>
+	<SolidColorBrush x:Key="GanttCanvasBackgroundBrush" Color="#F0F0F0"/>
+	<SolidColorBrush x:Key="TaskDefaultBrush" Color="LightBlue"/>
+	<SolidColorBrush x:Key="TaskSelectedBrush" Color="Yellow"/>
+	<SolidColorBrush x:Key="TaskProgressBrush" Color="Blue"/>
+	<SolidColorBrush x:Key="TodayLineBrush" Color="Red"/>
+	<SolidColorBrush x:Key="DependencyLineBrush" Color="Black"/>
+	<SolidColorBrush x:Key="TextForegroundBrush" Color="Black"/>
+
+	<!-- Other Properties -->
+	<x:Double x:Key="HeaderLineThickness">1</x:Double>
+	<x:Double x:Key="TodayLineThickness">2</x:Double>
+	<x:Double x:Key="DependencyLineThickness">1</x:Double>
+	<collections:AvaloniaList x:TypeArguments="x:Double" x:Key="TodayLineDashArray">
+		<x:Double>4</x:Double>
+		<x:Double>4</x:Double>
+	</collections:AvaloniaList>
+	<x:Double x:Key="MonthTextFontSize">12</x:Double>
+	<x:Double x:Key="DayTextFontSize">10</x:Double>
+	<FontWeight x:Key="HeaderFontWeight">Bold</FontWeight>
+</ResourceDictionary>

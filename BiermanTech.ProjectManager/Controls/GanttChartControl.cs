@@ -32,7 +32,7 @@ public class GanttChartControl : TemplatedControl
             (o, v) => o.SelectedTask = v);
 
     private readonly GanttChartViewModel _viewModel;
-    private readonly GanttChartRenderer _renderer;
+    private GanttChartRenderer _renderer; // Initialize later in OnApplyTemplate
     private Canvas _ganttCanvas;
     private Canvas _headerCanvas;
     private ItemsControl _taskList;
@@ -59,16 +59,13 @@ public class GanttChartControl : TemplatedControl
         }
     }
 
-    public GanttChartControl() : this(
-        App.ServiceProvider.GetService<ITaskRepository>(),
-        App.ServiceProvider.GetService<GanttChartRenderer>())
+    public GanttChartControl() : this(App.ServiceProvider.GetService<ITaskRepository>())
     {
     }
 
-    public GanttChartControl(ITaskRepository taskRepository, GanttChartRenderer renderer)
+    public GanttChartControl(ITaskRepository taskRepository)
     {
         _viewModel = new GanttChartViewModel(taskRepository);
-        _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
 
         // Observe changes to Tasks, SelectedTask, and Bounds for rendering updates
         this.WhenAnyValue(x => x._viewModel.Tasks, x => x._viewModel.SelectedTask, x => x.Bounds)
@@ -106,6 +103,9 @@ public class GanttChartControl : TemplatedControl
         _taskListScrollViewer = e.NameScope.Find<ScrollViewer>("PART_TaskListScrollViewer");
         _chartScrollViewer = e.NameScope.Find<ScrollViewer>("PART_ChartScrollViewer");
 
+        // Initialize the renderer here, after the control is part of the visual tree
+        _renderer = new GanttChartRenderer(this);
+
         if (_taskListScrollViewer != null && _chartScrollViewer != null)
         {
             _ = new ScrollSynchronizer(_taskListScrollViewer, _chartScrollViewer);
@@ -122,9 +122,14 @@ public class GanttChartControl : TemplatedControl
 
     private bool IsValidForRendering()
     {
-        return _ganttCanvas != null && _headerCanvas != null && _taskList != null &&
-               _viewModel.Tasks != null && _viewModel.Tasks.Any() &&
-               Bounds.Width > 0 && Bounds.Height > 0;
+        return _renderer != null &&
+               _ganttCanvas != null &&
+               _headerCanvas != null &&
+               _taskList != null &&
+               _viewModel.Tasks != null &&
+               _viewModel.Tasks.Any() &&
+               Bounds.Width > 0 &&
+               Bounds.Height > 0;
     }
 
     private void UpdateGanttChart()
