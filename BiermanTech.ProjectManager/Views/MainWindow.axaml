@@ -5,28 +5,11 @@
         x:Class="BiermanTech.ProjectManager.Views.MainWindow"
         Title="BiermanTech Project Manager" Width="800" Height="600"
         x:DataType="vm:MainWindowViewModel">
-	<Window.Styles>
-		<Style Selector="Button">
-			<Setter Property="Margin" Value="5"/>
-		</Style>
-	</Window.Styles>
-
-	<Grid>
-		<Grid.RowDefinitions>
-			<RowDefinition Height="Auto"/>
-			<RowDefinition Height="*"/>
-		</Grid.RowDefinitions>
-
-		<!-- Toolbar -->
-		<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="5">
-			<Button Content="Add Task" Command="{Binding CreateTaskCommand}"/>
-			<Button Content="Update Task" Command="{Binding UpdateTaskCommand}" IsEnabled="{Binding SelectedTask, Converter={StaticResource IsNotNullConverter}}"/>
-			<Button Content="Delete Task" Command="{Binding DeleteTaskCommand}" IsEnabled="{Binding SelectedTask, Converter={StaticResource IsNotNullConverter}}"/>
-			<Button Content="Undo" Command="{Binding UndoCommand}"/>
-			<Button Content="Redo" Command="{Binding RedoCommand}"/>
-		</StackPanel>
+	<DockPanel>
+		<!-- Menu Bar -->
+		<controls:MenuBarControl x:Name="MenuBarControl" DockPanel.Dock="Top" />
 
 		<!-- Gantt Chart -->
-		<controls:GanttChartControl Grid.Row="1" Tasks="{Binding Tasks}" SelectedTask="{Binding SelectedTask, Mode=TwoWay}"/>
-	</Grid>
+		<controls:GanttChartControl Tasks="{Binding Tasks}" SelectedTask="{Binding SelectedTask, Mode=TwoWay}" />
+	</DockPanel>
 </Window>

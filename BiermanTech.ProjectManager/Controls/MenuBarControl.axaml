@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:vm="using:BiermanTech.ProjectManager.ViewModels"
+            x:Class="BiermanTech.ProjectManager.Controls.MenuBarControl"
+            x:DataType="vm:MenuBarViewModel">
+	<UserControl.Styles>
+		<Style Selector="MenuItem">
+			<Setter Property="Margin" Value="2"/>
+		</Style>
+	</UserControl.Styles>
+
+	<Menu>
+		<!-- File Menu -->
+		<MenuItem Header="_File">
+			<MenuItem Header="_New Project" Command="{Binding NewProjectCommand}" />
+			<MenuItem Header="_Open Project" Command="{Binding OpenProjectCommand}" />
+			<MenuItem Header="_Save Project" Command="{Binding SaveProjectCommand}" />
+			<Separator />
+			<MenuItem Header="E_xit" Command="{Binding ExitCommand}" />
+		</MenuItem>
+
+		<!-- Edit Menu -->
+		<MenuItem Header="_Edit">
+			<MenuItem Header="_Undo" Command="{Binding UndoCommand}"
+                      IsEnabled="{Binding UndoCommand.CanExecute}" />
+			<MenuItem Header="_Redo" Command="{Binding RedoCommand}"
+                      IsEnabled="{Binding RedoCommand.CanExecute}" />
+		</MenuItem>
+
+		<!-- Task Menu -->
+		<MenuItem Header="_Task">
+			<MenuItem Header="_Add Task" Command="{Binding CreateTaskCommand}" />
+			<MenuItem Header="_Update Task" Command="{Binding UpdateTaskCommand}"
+                      IsEnabled="{Binding SelectedTask, Converter={StaticResource IsNotNullConverter}}" />
+			<MenuItem Header="_Delete Task" Command="{Binding DeleteTaskCommand}"
+                      IsEnabled="{Binding SelectedTask, Converter={StaticResource IsNotNullConverter}}" />
+		</MenuItem>
+
+		<!-- Help Menu -->
+		<MenuItem Header="_Help">
+			<MenuItem Header="_About" Command="{Binding AboutCommand}" />
+		</MenuItem>
+	</Menu>
+</UserControl>

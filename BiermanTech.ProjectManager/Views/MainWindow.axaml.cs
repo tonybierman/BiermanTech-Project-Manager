@@ -1,10 +1,12 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using BiermanTech.ProjectManager.Commands;
+using BiermanTech.ProjectManager.Controls;
 using BiermanTech.ProjectManager.Models;
 using BiermanTech.ProjectManager.Services;
 using BiermanTech.ProjectManager.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 using System;
 
 namespace BiermanTech.ProjectManager.Views;
@@ -26,6 +28,18 @@ public partial class MainWindow : Window
             this
         );
         DataContext = _viewModel;
+
+        // Set up MenuBarControl's DataContext
+        var menuBarControl = this.FindControl<MenuBarControl>("MenuBarControl");
+        if (menuBarControl != null)
+        {
+            menuBarControl.DataContext = new MenuBarViewModel(_viewModel, this);
+        }
+        else
+        {
+            Log.Error("Failed to find MenuBarControl in MainWindow");
+        }
+
         _viewModel.Initialize();
     }
 
