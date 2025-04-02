@@ -70,6 +70,7 @@ public class GanttChartControl : TemplatedControl
         _viewModel = new GanttChartViewModel(taskRepository);
         _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
 
+        // Observe changes to Tasks, SelectedTask, and Bounds for rendering updates
         this.WhenAnyValue(x => x._viewModel.Tasks, x => x._viewModel.SelectedTask, x => x.Bounds)
             .Throttle(TimeSpan.FromMilliseconds(50))
             .ObserveOn(AvaloniaScheduler.Instance)
@@ -79,9 +80,20 @@ public class GanttChartControl : TemplatedControl
         _viewModel.WhenAnyValue(x => x.SelectedTask)
             .Subscribe(selectedTask =>
             {
-                // Raise property changed for SelectedTaskProperty to notify the binding
                 RaisePropertyChanged(SelectedTaskProperty, selectedTask, selectedTask);
                 Log.Information("GanttChartControl SelectedTask changed, task: {TaskName}", selectedTask?.Name ?? "null");
+            });
+
+        // Subscribe to changes in _viewModel.Tasks to update the task list
+        _viewModel.WhenAnyValue(x => x.Tasks)
+            .ObserveOn(AvaloniaScheduler.Instance)
+            .Subscribe(tasks =>
+            {
+                if (_taskList != null)
+                {
+                    _taskList.ItemsSource = tasks;
+                    Log.Information("GanttChartControl task list updated, task count: {TaskCount}", tasks?.Count ?? 0);
+                }
             });
     }
 

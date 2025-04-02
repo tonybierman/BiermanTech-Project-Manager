@@ -3,6 +3,7 @@ using BiermanTech.ProjectManager.Services;
 using ReactiveUI;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reactive.Linq;
 using Serilog;
 using Avalonia.Threading;
@@ -54,10 +55,17 @@ public class GanttChartViewModel : ReactiveObject
                 if (updatedTasks != null)
                 {
                     Tasks = new List<TaskItem>(updatedTasks);
+                    // Update SelectedTask to point to the corresponding task in the new list
+                    if (_selectedTask != null)
+                    {
+                        var newSelectedTask = Tasks.FirstOrDefault(t => t.Id == _selectedTask.Id);
+                        SelectedTask = newSelectedTask; // Will be null if the task was deleted
+                    }
                 }
                 else
                 {
                     Tasks = new List<TaskItem>();
+                    SelectedTask = null;
                 }
             });
 
