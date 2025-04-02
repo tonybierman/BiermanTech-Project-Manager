@@ -119,6 +119,7 @@ public class GanttChartRenderer
         {
             var (x, width, y) = CalculateTaskPosition(task, layout.MinDate, layout.PixelsPerDay, layout.RowHeight, rowIndex);
 
+            // Render the full task bar (background)
             var rect = new Rectangle
             {
                 Width = Math.Max(width, 1),
@@ -127,7 +128,7 @@ public class GanttChartRenderer
                 Stroke = GetResource<ISolidColorBrush>("TaskBorderBrush"),
                 StrokeThickness = GetResource<double>("TaskBorderThickness"),
                 // Uncomment the following line if you want a dashed border
-                // StrokeDashArray = GetResource<AvaloniaList<double>>("TaskBorderDashArray"),
+                //StrokeDashArray = GetResource<AvaloniaList<double>>("TaskBorderDashArray"),
                 [Canvas.LeftProperty] = x,
                 [Canvas.TopProperty] = y + 5,
                 Tag = task
@@ -141,25 +142,24 @@ public class GanttChartRenderer
                 }
             };
 
-            if (task.PercentComplete > 0)
+            ganttCanvas.Children.Add(rect);
+
+            // Render the progress bar if PercentComplete is between 0 and 100
+            if (task.PercentComplete > 0 && task.PercentComplete < 100)
             {
                 double progressWidth = (task.PercentComplete / 100) * width;
                 var progressRect = new Rectangle
                 {
                     Width = Math.Max(progressWidth, 1),
                     Height = Math.Max(layout.RowHeight - 10, 1),
-                    Fill = GetResource<ISolidColorBrush>("TaskProgressBrush"),
-                    Stroke = GetResource<ISolidColorBrush>("TaskBorderBrush"),
-                    StrokeThickness = GetResource<double>("TaskBorderThickness"),
-                    // Uncomment the following line if you want a dashed border
-                    // StrokeDashArray = GetResource<AvaloniaList<double>>("TaskBorderDashArray"),
+                    Fill = GetResource<VisualBrush>("TaskProgressBrush"),
+                    // No border on the progress bar to make it appear as part of the task bar
                     [Canvas.LeftProperty] = x,
                     [Canvas.TopProperty] = y + 5
                 };
                 ganttCanvas.Children.Add(progressRect);
             }
 
-            ganttCanvas.Children.Add(rect);
             rowIndex++;
         }
     }

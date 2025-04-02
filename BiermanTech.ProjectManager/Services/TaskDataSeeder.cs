@@ -32,21 +32,22 @@ public class TaskDataSeeder
             _taskRepository.AddTask(task);
         }
 
+        // TODO: Probably should remove this
         // Calculate percent complete
-        DateTimeOffset today = new DateTimeOffset(2025, 4, 1, 0, 0, 0, TimeSpan.Zero);
-        foreach (var task in _taskRepository.GetTasks())
-        {
-            if (today < task.StartDate)
-                task.PercentComplete = 0;
-            else if (today >= task.EndDate)
-                task.PercentComplete = 100;
-            else
-            {
-                double daysElapsed = (today - task.StartDate).TotalDays;
-                double totalDays = task.Duration.TotalDays;
-                task.PercentComplete = (daysElapsed / totalDays) * 100;
-            }
-        }
+        //DateTimeOffset today = new DateTimeOffset(2025, 4, 1, 0, 0, 0, TimeSpan.Zero);
+        //foreach (var task in _taskRepository.GetTasks())
+        //{
+        //    if (today < task.StartDate)
+        //        task.PercentComplete = 0;
+        //    else if (today >= task.EndDate)
+        //        task.PercentComplete = 100;
+        //    else
+        //    {
+        //        double daysElapsed = (today - task.StartDate).TotalDays;
+        //        double totalDays = task.Duration.TotalDays;
+        //        task.PercentComplete = (daysElapsed / totalDays) * 100;
+        //    }
+        //}
 
         return project;
     }

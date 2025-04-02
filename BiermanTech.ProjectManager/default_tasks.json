@@ -39,7 +39,7 @@
       "Name": "Database Setup",
       "StartDate": "2025-04-10T00:00:00+00:00",
       "Duration": "3.00:00:00",
-      "PercentComplete": 0,
+      "PercentComplete": 50,
       "DependsOnId": "b2c3d4e5-f6a7-8901-bcde-f23456789012"
     },
     {
