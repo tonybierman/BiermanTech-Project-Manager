@@ -18,9 +18,7 @@ Features
 
 Screenshots
 
-(You can add screenshots here by taking images of the application and placing them in a screenshots folder. For example:)
-[Gantt Chart View](screenshots/gantt-chart.png)
-[Task Dialog](screenshots/task-dialog.png)
+[Gantt Chart View](screenshot.png)
 
 Prerequisites
 
