@@ -264,7 +264,7 @@ public class GanttChartRenderer
             {
                 StartPoint = new Point(x, 0),
                 EndPoint = new Point(x, layout.ChartHeight),
-                Stroke = Brushes.LightGray,
+                Stroke = GetResource<ISolidColorBrush>("DateLineBrush"),
                 StrokeThickness = GetResource<double>("HeaderLineThickness"),
                 StrokeDashArray = GetResource<AvaloniaList<double>>("TodayLineDashArray")
             };

@@ -20,6 +20,7 @@
 	<SolidColorBrush x:Key="TodayLineBrush" Color="Red"/>
 	<SolidColorBrush x:Key="DependencyLineBrush" Color="Black"/>
 	<SolidColorBrush x:Key="TextForegroundBrush" Color="Black"/>
+	<SolidColorBrush x:Key="DateLineBrush" Color="LightGray"/>
 	<!-- Task Bar Border -->
 	<SolidColorBrush x:Key="TaskBorderBrush" Color="DarkBlue"/>
 	<x:Double x:Key="TaskBorderThickness">1</x:Double>
