@@ -1,12 +1,33 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:collections="clr-namespace:Avalonia.Collections;assembly=Avalonia.Base">
-	<!-- Colors -->
+	
+	<!-- Header -->
 	<SolidColorBrush x:Key="HeaderBackgroundBrush" Color="LightGray"/>
+	<x:Double x:Key="HeaderLineThickness">1</x:Double>
+	<x:Double x:Key="MonthTextFontSize">12</x:Double>
+	<x:Double x:Key="DayTextFontSize">10</x:Double>
+	<FontWeight x:Key="HeaderFontWeight">Bold</FontWeight>
+	
+	<!-- Today Line -->
+	<SolidColorBrush x:Key="TodayLineBrush" Color="Red"/>
+	<x:Double x:Key="TodayLineThickness">2</x:Double>
+	<collections:AvaloniaList x:TypeArguments="x:Double" x:Key="TodayLineDashArray">
+		<x:Double>4</x:Double>
+		<x:Double>4</x:Double>
+	</collections:AvaloniaList>
+
+	<!-- Other Properties -->
 	<SolidColorBrush x:Key="TaskListBackgroundBrush" Color="#A9A9A9"/>
 	<SolidColorBrush x:Key="GanttCanvasBackgroundBrush" Color="#F0F0F0"/>
 	<SolidColorBrush x:Key="TaskProgressBrush" Color="DarkGreen"/>
 	<SolidColorBrush x:Key="TaskSelectedBrush" Color="Yellow"/>
+	<SolidColorBrush x:Key="TextForegroundBrush" Color="Black"/>
+	<SolidColorBrush x:Key="DateLineBrush" Color="LightGray"/>
+
+	<!-- Leaf Task Bar -->
+	<SolidColorBrush x:Key="TaskBorderBrush" Color="DarkBlue"/>
+	<x:Double x:Key="TaskBorderThickness">1</x:Double>
 	<VisualBrush x:Key="TaskDefaultBrush" TileMode="Tile" DestinationRect="0,0,10,10">
 		<VisualBrush.Visual>
 			<Canvas Width="10" Height="10" Background="Transparent">
@@ -17,28 +38,24 @@
 			</Canvas>
 		</VisualBrush.Visual>
 	</VisualBrush>
-	<SolidColorBrush x:Key="TodayLineBrush" Color="Red"/>
 	<SolidColorBrush x:Key="DependencyLineBrush" Color="Black"/>
-	<SolidColorBrush x:Key="TextForegroundBrush" Color="Black"/>
-	<SolidColorBrush x:Key="DateLineBrush" Color="LightGray"/>
-	<!-- Task Bar Border -->
-	<SolidColorBrush x:Key="TaskBorderBrush" Color="DarkBlue"/>
-	<x:Double x:Key="TaskBorderThickness">1</x:Double>
-	<!-- Optional: Add a dash array if you want a dashed border -->
-	<!-- <collections:AvaloniaList x:TypeArguments="x:Double" x:Key="TaskBorderDashArray">
-        <x:Double>2</x:Double>
-        <x:Double>2</x:Double>
-    </collections:AvaloniaList> -->
-
-	<!-- Other Properties -->
-	<x:Double x:Key="HeaderLineThickness">1</x:Double>
-	<x:Double x:Key="TodayLineThickness">2</x:Double>
 	<x:Double x:Key="DependencyLineThickness">1</x:Double>
-	<collections:AvaloniaList x:TypeArguments="x:Double" x:Key="TodayLineDashArray">
-		<x:Double>4</x:Double>
-		<x:Double>4</x:Double>
-	</collections:AvaloniaList>
-	<x:Double x:Key="MonthTextFontSize">12</x:Double>
-	<x:Double x:Key="DayTextFontSize">10</x:Double>
-	<FontWeight x:Key="HeaderFontWeight">Bold</FontWeight>
+
+	<!-- Parent Task Bar -->
+	<SolidColorBrush x:Key="ParentTaskBorderBrush" Color="DarkBlue"/>
+	<x:Double x:Key="ParentTaskBorderThickness">1</x:Double>
+	<VisualBrush x:Key="ParentTaskDefaultBrush" TileMode="Tile" DestinationRect="0,0,10,10">
+		<VisualBrush.Visual>
+			<Canvas Width="10" Height="10" Background="Transparent">
+				<!-- Diagonal line from bottom-left to top-right -->
+				<Line StartPoint="0,10" EndPoint="10,0" Stroke="DarkGreen" StrokeThickness="1"/>
+				<!-- Optional: Add a second line for a crosshatch effect -->
+				<Line StartPoint="0,0" EndPoint="10,10" Stroke="DarkGreen" StrokeThickness="1"/>
+			</Canvas>
+		</VisualBrush.Visual>
+	</VisualBrush>
+	<SolidColorBrush x:Key="ParentDependencyLineBrush" Color="Black"/>
+	<x:Double x:Key="ParentDependencyLineThickness">1</x:Double>
+
+
 </ResourceDictionary>
