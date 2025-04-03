@@ -42,15 +42,15 @@
 	<x:Double x:Key="DependencyLineThickness">1</x:Double>
 
 	<!-- Parent Task Bar -->
-	<SolidColorBrush x:Key="ParentTaskBorderBrush" Color="DarkBlue"/>
+	<SolidColorBrush x:Key="ParentTaskBorderBrush" Color="DarkGreen"/>
 	<x:Double x:Key="ParentTaskBorderThickness">1</x:Double>
 	<VisualBrush x:Key="ParentTaskDefaultBrush" TileMode="Tile" DestinationRect="0,0,10,10">
 		<VisualBrush.Visual>
 			<Canvas Width="10" Height="10" Background="Transparent">
 				<!-- Diagonal line from bottom-left to top-right -->
-				<Line StartPoint="0,10" EndPoint="10,0" Stroke="DarkGreen" StrokeThickness="1"/>
+				<Line StartPoint="0,10" EndPoint="10,0" Stroke="DarkBlue" StrokeThickness="1"/>
 				<!-- Optional: Add a second line for a crosshatch effect -->
-				<Line StartPoint="0,0" EndPoint="10,10" Stroke="DarkGreen" StrokeThickness="1"/>
+				<Line StartPoint="0,0" EndPoint="10,10" Stroke="DarkBlue" StrokeThickness="1"/>
 			</Canvas>
 		</VisualBrush.Visual>
 	</VisualBrush>

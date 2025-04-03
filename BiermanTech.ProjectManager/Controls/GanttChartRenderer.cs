@@ -160,8 +160,8 @@ public class GanttChartRenderer
             double centerY = y + (layout.RowHeight / 2);
             double width = task.CalculatedDuration.TotalDays * layout.PixelsPerDay;
 
-            Log.Information("Task: {Name}, X: {X}, Width: {Width}, Y: {Y}, Height: {Height}",
-                task.Name, x, width, y, taskHeight);
+            Log.Information("Task: {Name}, X: {X}, Width: {Width}, Y: {Y}, Height: {Height}, IsParent: {IsParent}",
+                task.Name, x, width, y, taskHeight, task.IsParent);
 
             if (task.CalculatedDuration.TotalDays == 0)
             {
@@ -179,9 +179,9 @@ public class GanttChartRenderer
                     new Point(x + halfWidth, centerY + halfHeight),
                     new Point(x, centerY)
                 },
-                    Fill = Brushes.Black,
-                    Stroke = GetResource<ISolidColorBrush>("TaskBorderBrush"),
-                    StrokeThickness = GetResource<double>("TaskBorderThickness"),
+                    Fill = Brushes.Black, // Keep consistent; could differentiate if desired
+                    Stroke = task.IsParent ? GetResource<ISolidColorBrush>("ParentTaskBorderBrush") : GetResource<ISolidColorBrush>("TaskBorderBrush"),
+                    StrokeThickness = task.IsParent ? GetResource<double>("ParentTaskBorderThickness") : GetResource<double>("TaskBorderThickness"),
                     Tag = task
                 };
                 diamond.PointerPressed += (s, e) =>
@@ -201,9 +201,11 @@ public class GanttChartRenderer
                 {
                     Width = Math.Max(width, 1),
                     Height = taskHeight,
-                    Fill = task == selectedTask ? GetResource<ISolidColorBrush>("TaskSelectedBrush") : GetResource<VisualBrush>("TaskDefaultBrush"),
-                    Stroke = GetResource<ISolidColorBrush>("TaskBorderBrush"),
-                    StrokeThickness = GetResource<double>("TaskBorderThickness"),
+                    Fill = task == selectedTask
+                        ? GetResource<ISolidColorBrush>("TaskSelectedBrush")
+                        : (task.IsParent ? GetResource<VisualBrush>("ParentTaskDefaultBrush") : GetResource<IBrush>("TaskDefaultBrush")),
+                    Stroke = task.IsParent ? GetResource<ISolidColorBrush>("ParentTaskBorderBrush") : GetResource<ISolidColorBrush>("TaskBorderBrush"),
+                    StrokeThickness = task.IsParent ? GetResource<double>("ParentTaskBorderThickness") : GetResource<double>("TaskBorderThickness"),
                     [Canvas.LeftProperty] = x,
                     [Canvas.TopProperty] = y + (layout.RowHeight - taskHeight) / 2,
                     Tag = task
