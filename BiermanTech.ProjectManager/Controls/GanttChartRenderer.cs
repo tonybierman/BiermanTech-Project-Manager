@@ -72,11 +72,11 @@ public class GanttChartRenderer
         double startX = CalculateXForDayOffset(startDayOffset, pixelsPerDay);
         double startY = taskIndex * rowHeight + (rowHeight / 2);
 
-        lines.Add((new Point(depEndX, depY), new Point(depEndX + 10, depY), false));
-        lines.Add((new Point(depEndX + 10, depY), new Point(depEndX + 10, startY), false));
-        lines.Add((new Point(depEndX + 10, startY), new Point(startX, startY), false));
-        lines.Add((new Point(startX, startY), new Point(startX - 5, startY - 5), true));
-        lines.Add((new Point(startX, startY), new Point(startX - 5, startY + 5), true));
+        lines.Add((new Point(depEndX, depY), new Point(depEndX + GanttChartConfig.DependencyLineOffset, depY), false));
+        lines.Add((new Point(depEndX + GanttChartConfig.DependencyLineOffset, depY), new Point(depEndX + GanttChartConfig.DependencyLineOffset, startY), false));
+        lines.Add((new Point(depEndX + GanttChartConfig.DependencyLineOffset, startY), new Point(startX, startY), false));
+        lines.Add((new Point(startX, startY), new Point(startX - GanttChartConfig.ArrowSize, startY - GanttChartConfig.ArrowSize), true));
+        lines.Add((new Point(startX, startY), new Point(startX - GanttChartConfig.ArrowSize, startY + GanttChartConfig.ArrowSize), true));
 
         return lines;
     }
@@ -84,7 +84,7 @@ public class GanttChartRenderer
     public void RenderHeader(Canvas headerCanvas, List<TaskItem> tasks, GanttChartLayout layout)
     {
         headerCanvas.Children.Clear();
-        double dayTextTop = GanttChartConfig.MonthRowHeight;
+        double dayTextTop = GanttChartConfig.DayTextVerticalPosition;
         string lastMonthDisplayed = null;
 
         DateTimeOffset normalizedMinDate = NormalizeToMidnight(layout.MinDate);
@@ -116,7 +116,7 @@ public class GanttChartRenderer
                             Text = monthName,
                             Foreground = GetResource<ISolidColorBrush>("TextForegroundBrush"),
                             [Canvas.LeftProperty] = x + 2,
-                            [Canvas.TopProperty] = 5,
+                            [Canvas.TopProperty] = GanttChartConfig.MonthTextTopOffset,
                             FontSize = GetResource<double>("MonthTextFontSize"),
                             FontWeight = GetResource<FontWeight>("HeaderFontWeight")
                         };
@@ -130,7 +130,7 @@ public class GanttChartRenderer
                     Text = date.ToString("dd"),
                     Foreground = GetResource<ISolidColorBrush>("TextForegroundBrush"),
                     [Canvas.LeftProperty] = x + 2,
-                    [Canvas.TopProperty] = dayTextTop + 5,
+                    [Canvas.TopProperty] = dayTextTop,
                     FontSize = GetResource<double>("DayTextFontSize")
                 };
                 headerCanvas.Children.Add(dayText);
@@ -148,7 +148,7 @@ public class GanttChartRenderer
             double x = CalculateXForDayOffset(dayOffset, layout.PixelsPerDay);
             double width = task.Duration.TotalDays * layout.PixelsPerDay;
             double y = rowIndex * layout.RowHeight;
-            double taskHeight = Math.Min(Math.Max(layout.RowHeight - 10, 1), GanttChartConfig.TaskBarHeight);
+            double taskHeight = Math.Min(Math.Max(layout.RowHeight - GanttChartConfig.TaskHeightPadding, 1), GanttChartConfig.TaskBarHeight);
 
             var rect = new Rectangle
             {
