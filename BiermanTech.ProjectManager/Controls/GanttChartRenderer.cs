@@ -243,4 +243,26 @@ public class GanttChartRenderer
             rowIndex++;
         }
     }
+
+    public void RenderDateLines(Canvas dateLinesCanvas, GanttChartLayout layout)
+    {
+        dateLinesCanvas.Children.Clear(); // Clear to avoid duplicates
+        DateTimeOffset normalizedMinDate = NormalizeToMidnight(layout.MinDate);
+
+        for (int dayOffset = 0; dayOffset <= layout.TotalDays; dayOffset++)
+        {
+            double x = CalculateXForDayOffset(dayOffset, layout.PixelsPerDay);
+
+            var dateLine = new Line
+            {
+                StartPoint = new Point(x, 0),
+                EndPoint = new Point(x, layout.ChartHeight),
+                Stroke = Brushes.LightGray,
+                StrokeThickness = GetResource<double>("HeaderLineThickness"),
+                StrokeDashArray = GetResource<AvaloniaList<double>>("TodayLineDashArray")
+            };
+
+            dateLinesCanvas.Children.Add(dateLine);
+        }
+    }
 }

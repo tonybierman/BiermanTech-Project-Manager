@@ -35,6 +35,7 @@ public class GanttChartControl : TemplatedControl
     private GanttChartRenderer _renderer; // Initialize later in OnApplyTemplate
     private Canvas _ganttCanvas;
     private Canvas _headerCanvas;
+    private Canvas _dateLinesCanvas; // Added for date lines
     private ItemsControl _taskList;
     private ScrollViewer _taskListScrollViewer;
     private ScrollViewer _chartScrollViewer;
@@ -99,6 +100,7 @@ public class GanttChartControl : TemplatedControl
         base.OnApplyTemplate(e);
         _ganttCanvas = e.NameScope.Find<Canvas>("PART_GanttCanvas");
         _headerCanvas = e.NameScope.Find<Canvas>("PART_HeaderCanvas");
+        _dateLinesCanvas = e.NameScope.Find<Canvas>("PART_DateLinesCanvas"); // Added
         _taskList = e.NameScope.Find<ItemsControl>("PART_TaskList");
         _taskListScrollViewer = e.NameScope.Find<ScrollViewer>("PART_TaskListScrollViewer");
         _chartScrollViewer = e.NameScope.Find<ScrollViewer>("PART_ChartScrollViewer");
@@ -125,6 +127,7 @@ public class GanttChartControl : TemplatedControl
         return _renderer != null &&
                _ganttCanvas != null &&
                _headerCanvas != null &&
+               _dateLinesCanvas != null && // Added
                _taskList != null &&
                _viewModel.Tasks != null &&
                _viewModel.Tasks.Any() &&
@@ -152,6 +155,7 @@ public class GanttChartControl : TemplatedControl
                 }
             }
 
+            _renderer.RenderDateLines(_dateLinesCanvas, layout); // Render to separate canvas
             _renderer.RenderHeader(_headerCanvas, _viewModel.Tasks, layout);
             _renderer.RenderTasks(_ganttCanvas, _viewModel.Tasks, _viewModel.SelectedTask, layout, task => SelectedTask = task);
             _renderer.RenderTodayLine(_ganttCanvas, new DateTimeOffset(2025, 4, 1, 0, 0, 0, TimeSpan.Zero), layout);
@@ -161,6 +165,8 @@ public class GanttChartControl : TemplatedControl
             _headerCanvas.Height = layout.HeaderHeight;
             _ganttCanvas.Width = layout.TotalDays * layout.PixelsPerDay;
             _ganttCanvas.Height = _viewModel.Tasks.Count * layout.RowHeight;
+            _dateLinesCanvas.Width = layout.TotalDays * layout.PixelsPerDay; // Set width for date lines canvas
+            _dateLinesCanvas.Height = _viewModel.Tasks.Count * layout.RowHeight; // Match height
         });
     }
 
