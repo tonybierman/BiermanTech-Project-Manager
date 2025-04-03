@@ -143,16 +143,17 @@ public class GanttChartRenderer
             double x = CalculateXForDayOffset(dayOffset, layout.PixelsPerDay);
             double width = task.Duration.TotalDays * layout.PixelsPerDay;
             double y = rowIndex * layout.RowHeight;
+            double taskHeight = Math.Min(Math.Max(layout.RowHeight - 10, 1), 20); // Cap at 20px, min 1px
 
             var rect = new Rectangle
             {
                 Width = Math.Max(width, 1),
-                Height = Math.Max(layout.RowHeight - 10, 1),
+                Height = taskHeight, // Use capped height
                 Fill = task == selectedTask ? GetResource<ISolidColorBrush>("TaskSelectedBrush") : GetResource<VisualBrush>("TaskDefaultBrush"),
                 Stroke = GetResource<ISolidColorBrush>("TaskBorderBrush"),
                 StrokeThickness = GetResource<double>("TaskBorderThickness"),
                 [Canvas.LeftProperty] = x,
-                [Canvas.TopProperty] = y + 5,
+                [Canvas.TopProperty] = y + (layout.RowHeight - taskHeight) / 2, // Center vertically within row
                 Tag = task
             };
 
@@ -172,10 +173,10 @@ public class GanttChartRenderer
                 var progressRect = new Rectangle
                 {
                     Width = Math.Max(progressWidth, 1),
-                    Height = Math.Max(layout.RowHeight - 10, 1),
+                    Height = taskHeight, // Use same capped height
                     Fill = GetResource<ISolidColorBrush>("TaskProgressBrush"),
                     [Canvas.LeftProperty] = x,
-                    [Canvas.TopProperty] = y + 5
+                    [Canvas.TopProperty] = y + (layout.RowHeight - taskHeight) / 2 // Center vertically within row
                 };
                 ganttCanvas.Children.Add(progressRect);
             }
