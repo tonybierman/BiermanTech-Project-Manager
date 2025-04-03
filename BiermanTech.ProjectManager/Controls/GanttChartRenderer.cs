@@ -3,6 +3,7 @@ using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Media;
+using BiermanTech.ProjectManager.Controls;
 using BiermanTech.ProjectManager.Models;
 using System;
 using System.Collections.Generic;
@@ -83,11 +84,11 @@ public class GanttChartRenderer
     public void RenderHeader(Canvas headerCanvas, List<TaskItem> tasks, GanttChartLayout layout)
     {
         headerCanvas.Children.Clear();
-        double monthRowHeight = 20;
-        double dayTextTop = monthRowHeight;
+        double dayTextTop = GanttChartConfig.MonthRowHeight;
         string lastMonthDisplayed = null;
 
         DateTimeOffset normalizedMinDate = NormalizeToMidnight(layout.MinDate);
+        // Render one extra line to ensure the last day has full width
         for (int dayOffset = 0; dayOffset <= layout.TotalDays; dayOffset++)
         {
             DateTimeOffset date = normalizedMinDate.AddDays(dayOffset);
@@ -102,34 +103,38 @@ public class GanttChartRenderer
             };
             headerCanvas.Children.Add(line);
 
-            if (date.Day == 1 || dayOffset == 0)
+            // Only render text up to the last day, not the extra line
+            if (dayOffset < layout.TotalDays)
             {
-                string monthName = date.ToString("MMMM");
-                if (monthName != lastMonthDisplayed)
+                if (date.Day == 1 || dayOffset == 0)
                 {
-                    var monthText = new TextBlock
+                    string monthName = date.ToString("MMMM");
+                    if (monthName != lastMonthDisplayed)
                     {
-                        Text = monthName,
-                        Foreground = GetResource<ISolidColorBrush>("TextForegroundBrush"),
-                        [Canvas.LeftProperty] = x + 2,
-                        [Canvas.TopProperty] = 5,
-                        FontSize = GetResource<double>("MonthTextFontSize"),
-                        FontWeight = GetResource<FontWeight>("HeaderFontWeight")
-                    };
-                    headerCanvas.Children.Add(monthText);
-                    lastMonthDisplayed = monthName;
+                        var monthText = new TextBlock
+                        {
+                            Text = monthName,
+                            Foreground = GetResource<ISolidColorBrush>("TextForegroundBrush"),
+                            [Canvas.LeftProperty] = x + 2,
+                            [Canvas.TopProperty] = 5,
+                            FontSize = GetResource<double>("MonthTextFontSize"),
+                            FontWeight = GetResource<FontWeight>("HeaderFontWeight")
+                        };
+                        headerCanvas.Children.Add(monthText);
+                        lastMonthDisplayed = monthName;
+                    }
                 }
-            }
 
-            var dayText = new TextBlock
-            {
-                Text = date.ToString("dd"),
-                Foreground = GetResource<ISolidColorBrush>("TextForegroundBrush"),
-                [Canvas.LeftProperty] = x + 2,
-                [Canvas.TopProperty] = dayTextTop + 5,
-                FontSize = GetResource<double>("DayTextFontSize")
-            };
-            headerCanvas.Children.Add(dayText);
+                var dayText = new TextBlock
+                {
+                    Text = date.ToString("dd"),
+                    Foreground = GetResource<ISolidColorBrush>("TextForegroundBrush"),
+                    [Canvas.LeftProperty] = x + 2,
+                    [Canvas.TopProperty] = dayTextTop + 5,
+                    FontSize = GetResource<double>("DayTextFontSize")
+                };
+                headerCanvas.Children.Add(dayText);
+            }
         }
     }
 
@@ -143,17 +148,17 @@ public class GanttChartRenderer
             double x = CalculateXForDayOffset(dayOffset, layout.PixelsPerDay);
             double width = task.Duration.TotalDays * layout.PixelsPerDay;
             double y = rowIndex * layout.RowHeight;
-            double taskHeight = Math.Min(Math.Max(layout.RowHeight - 10, 1), 20); // Cap at 20px, min 1px
+            double taskHeight = Math.Min(Math.Max(layout.RowHeight - 10, 1), GanttChartConfig.TaskBarHeight);
 
             var rect = new Rectangle
             {
                 Width = Math.Max(width, 1),
-                Height = taskHeight, // Use capped height
+                Height = taskHeight,
                 Fill = task == selectedTask ? GetResource<ISolidColorBrush>("TaskSelectedBrush") : GetResource<VisualBrush>("TaskDefaultBrush"),
                 Stroke = GetResource<ISolidColorBrush>("TaskBorderBrush"),
                 StrokeThickness = GetResource<double>("TaskBorderThickness"),
                 [Canvas.LeftProperty] = x,
-                [Canvas.TopProperty] = y + (layout.RowHeight - taskHeight) / 2, // Center vertically within row
+                [Canvas.TopProperty] = y + (layout.RowHeight - taskHeight) / 2,
                 Tag = task
             };
 
@@ -173,10 +178,10 @@ public class GanttChartRenderer
                 var progressRect = new Rectangle
                 {
                     Width = Math.Max(progressWidth, 1),
-                    Height = taskHeight, // Use same capped height
+                    Height = taskHeight,
                     Fill = GetResource<ISolidColorBrush>("TaskProgressBrush"),
                     [Canvas.LeftProperty] = x,
-                    [Canvas.TopProperty] = y + (layout.RowHeight - taskHeight) / 2 // Center vertically within row
+                    [Canvas.TopProperty] = y + (layout.RowHeight - taskHeight) / 2
                 };
                 ganttCanvas.Children.Add(progressRect);
             }
@@ -247,9 +252,10 @@ public class GanttChartRenderer
 
     public void RenderDateLines(Canvas dateLinesCanvas, GanttChartLayout layout)
     {
-        dateLinesCanvas.Children.Clear(); // Clear to avoid duplicates
+        dateLinesCanvas.Children.Clear();
         DateTimeOffset normalizedMinDate = NormalizeToMidnight(layout.MinDate);
 
+        // Render one extra line to ensure the last day has full width
         for (int dayOffset = 0; dayOffset <= layout.TotalDays; dayOffset++)
         {
             double x = CalculateXForDayOffset(dayOffset, layout.PixelsPerDay);

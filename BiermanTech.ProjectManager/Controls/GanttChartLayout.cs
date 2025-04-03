@@ -24,7 +24,7 @@ public class GanttChartLayout
         HeaderHeight = GanttChartConfig.HeaderHeight;
         ChartHeight = Math.Max(controlHeight - HeaderHeight, 1);
         MinDate = tasks.Min(t => t.StartDate);
-        TotalDays = (tasks.Max(t => t.EndDate) - MinDate).TotalDays;
+        TotalDays = (tasks.Max(t => t.EndDate) - MinDate).TotalDays + 1;
         PixelsPerDay = Math.Max(ChartWidth / TotalDays, GanttChartConfig.MinPixelsPerDay);
         RowHeight = Math.Max(ChartHeight / tasks.Count, GanttChartConfig.MinRowHeight);
     }

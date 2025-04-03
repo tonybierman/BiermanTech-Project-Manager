@@ -6,4 +6,7 @@ public static class GanttChartConfig
     public const double HeaderHeight = 40;
     public const double MinPixelsPerDay = 10;
     public const double MinRowHeight = 30;
+    public const double MonthRowHeight = 20;
+    public const double TaskBarHeight = 20;
+
 }
