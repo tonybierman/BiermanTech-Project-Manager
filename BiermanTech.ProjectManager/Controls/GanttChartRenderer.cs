@@ -71,20 +71,30 @@ public class GanttChartRenderer
     public List<(Point Start, Point End, bool IsArrow)> CalculateDependencyLines(TaskItem task, TaskItem dependsOn, DateTimeOffset minDate, double pixelsPerDay, double rowHeight, int taskIndex, int depIndex)
     {
         var lines = new List<(Point Start, Point End, bool IsArrow)>();
+
+        // Dependency task end (center of end)
         int depDayOffset = GetDayOffset(dependsOn.EndDate, minDate);
         double depEndX = CalculateXForDayOffset(depDayOffset, pixelsPerDay);
         double depY = depIndex * rowHeight + (rowHeight / 2);
+
+        // Dependent task start (center of start)
         int startDayOffset = GetDayOffset(task.CalculatedStartDate, minDate);
         double startX = CalculateXForDayOffset(startDayOffset, pixelsPerDay);
         double startY = taskIndex * rowHeight + (rowHeight / 2);
 
-        double halfDayWidth = pixelsPerDay / 2;
-        double depVerticalX = depEndX + halfDayWidth;
-        double startVerticalX = startX + halfDayWidth;
+        // Define key points
+        double rightX = depEndX + pixelsPerDay / 4; // Quarter day right of dependency end
+        double aboveY = startY - rowHeight / 2;      // Half row above task bar
+        double leftX = startX - pixelsPerDay / 4;    // Quarter day left of task start
 
-        lines.Add((new Point(depEndX, depY), new Point(depVerticalX, depY), false));
-        lines.Add((new Point(depVerticalX, depY), new Point(depVerticalX, startY), false));
-        lines.Add((new Point(depVerticalX, startY), new Point(startX, startY), false));
+        // Path segments
+        lines.Add((new Point(depEndX, depY), new Point(rightX, depY), false));        // Right from dependency end (quarter day)
+        lines.Add((new Point(rightX, depY), new Point(rightX, aboveY), false));       // Down/Up to above task bar
+        lines.Add((new Point(rightX, aboveY), new Point(leftX, aboveY), false));      // Left to quarter day before task
+        lines.Add((new Point(leftX, aboveY), new Point(leftX, startY), false));       // Down to task center
+        lines.Add((new Point(leftX, startY), new Point(startX, startY), false));      // Right to task start
+
+        // Arrowhead
         lines.Add((new Point(startX, startY), new Point(startX - GanttChartConfig.ArrowSize, startY - GanttChartConfig.ArrowSize), true));
         lines.Add((new Point(startX, startY), new Point(startX - GanttChartConfig.ArrowSize, startY + GanttChartConfig.ArrowSize), true));
 
