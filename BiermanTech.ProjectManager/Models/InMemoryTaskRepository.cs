@@ -1,6 +1,7 @@
 ﻿using BiermanTech.ProjectManager.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace BiermanTech.ProjectManager.Services;
 
@@ -17,20 +18,65 @@ public class InMemoryTaskRepository : ITaskRepository
 
     public List<TaskItem> GetTasks() => _tasks;
 
-    public void AddTask(TaskItem task)
+    public void AddTask(TaskItem task, Guid? parentTaskId = null)
     {
-        _tasks.Add(task);
+        if (parentTaskId.HasValue)
+        {
+            var parent = FindTaskById(_tasks, parentTaskId.Value);
+            if (parent != null)
+            {
+                parent.Children.Add(task);
+            }
+            else
+            {
+                _tasks.Add(task); // Fallback to top-level if parent not found
+            }
+        }
+        else
+        {
+            _tasks.Add(task);
+        }
         NotifyTasksChanged();
     }
 
     public void RemoveTask(TaskItem task)
     {
-        _tasks.Remove(task);
+        var parent = FindParentTask(_tasks, task);
+        if (parent != null)
+        {
+            parent.Children.Remove(task);
+        }
+        else
+        {
+            _tasks.Remove(task);
+        }
         NotifyTasksChanged();
     }
 
     public void NotifyTasksChanged()
     {
         TasksChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private TaskItem FindTaskById(IEnumerable<TaskItem> tasks, Guid id)
+    {
+        foreach (var task in tasks)
+        {
+            if (task.Id == id) return task;
+            var found = FindTaskById(task.Children, id);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    private TaskItem FindParentTask(IEnumerable<TaskItem> tasks, TaskItem child)
+    {
+        foreach (var task in tasks)
+        {
+            if (task.Children.Contains(child)) return task;
+            var found = FindParentTask(task.Children, child);
+            if (found != null) return found;
+        }
+        return null;
     }
 }

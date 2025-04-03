@@ -29,7 +29,6 @@ public class GanttChartViewModel : ReactiveObject
         get => _selectedTask;
         set
         {
-            // Ensure the property change is raised on the UI thread
             Dispatcher.UIThread.Post(() =>
             {
                 this.RaiseAndSetIfChanged(ref _selectedTask, value);
@@ -43,7 +42,6 @@ public class GanttChartViewModel : ReactiveObject
         _taskRepository = taskRepository ?? throw new ArgumentNullException(nameof(taskRepository));
         _tasks = new List<TaskItem>();
 
-        // Subscribe to external changes from the repository
         _tasksSubscription = Observable.FromEventPattern<EventHandler, EventArgs>(
             h => _taskRepository.TasksChanged += h,
             h => _taskRepository.TasksChanged -= h)
@@ -54,12 +52,11 @@ public class GanttChartViewModel : ReactiveObject
                 var updatedTasks = _taskRepository.GetTasks();
                 if (updatedTasks != null)
                 {
-                    Tasks = new List<TaskItem>(updatedTasks);
-                    // Update SelectedTask to point to the corresponding task in the new list
+                    Tasks = new List<TaskItem>(updatedTasks); // Keep hierarchy intact
                     if (_selectedTask != null)
                     {
-                        var newSelectedTask = Tasks.FirstOrDefault(t => t.Id == _selectedTask.Id);
-                        SelectedTask = newSelectedTask; // Will be null if the task was deleted
+                        var newSelectedTask = FindTaskById(Tasks, _selectedTask.Id);
+                        SelectedTask = newSelectedTask; // Could be null if deleted
                     }
                 }
                 else
@@ -69,7 +66,6 @@ public class GanttChartViewModel : ReactiveObject
                 }
             });
 
-        // Subscribe to Tasks changes to log
         this.WhenAnyValue(x => x.Tasks)
             .Where(tasks => tasks != null)
             .Subscribe(tasks =>
@@ -77,7 +73,6 @@ public class GanttChartViewModel : ReactiveObject
                 Log.Information("Tasks property changed, count: {Count}", tasks?.Count ?? 0);
             });
 
-        // Subscribe to SelectedTask changes to log
         this.WhenAnyValue(x => x.SelectedTask)
             .Subscribe(selectedTask =>
             {
@@ -100,5 +95,16 @@ public class GanttChartViewModel : ReactiveObject
     public void Dispose()
     {
         _tasksSubscription?.Dispose();
+    }
+
+    private TaskItem FindTaskById(IEnumerable<TaskItem> tasks, Guid id)
+    {
+        foreach (var task in tasks)
+        {
+            if (task.Id == id) return task;
+            var found = FindTaskById(task.Children, id);
+            if (found != null) return found;
+        }
+        return null;
     }
 }

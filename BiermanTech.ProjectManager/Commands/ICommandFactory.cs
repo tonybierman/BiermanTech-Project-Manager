@@ -1,15 +1,16 @@
 ﻿using BiermanTech.ProjectManager.Models;
-using System.Collections.Generic;
+using System;
 
-namespace BiermanTech.ProjectManager.Commands;
-
-public interface ICommandFactory
+namespace BiermanTech.ProjectManager.Commands
 {
-    ICommand CreateAddTaskCommand(TaskItem task);
-    ICommand CreateUpdateTaskCommand(TaskItem originalTask, TaskItem updatedTask);
-    ICommand CreateDeleteTaskCommand(TaskItem task, int index, List<TaskItem> dependentTasks);
-    ICommand CreateSaveProjectCommand(Project project, string filePath);
-    ICommand CreateLoadProjectCommand(Project project, string filePath);
-    ICommand CreateNewProjectCommand(Project project);
-    ICommand CreateEditNarrativeCommand(Project project, ProjectNarrative originalNarrative, ProjectNarrative updatedNarrative);
+    public interface ICommandFactory
+    {
+        ICommand CreateAddTaskCommand(TaskItem task, Guid? parentTaskId = null);
+        ICommand CreateDeleteTaskCommand(TaskItem task);
+        ICommand CreateEditNarrativeCommand(Project project, ProjectNarrative originalNarrative, ProjectNarrative updatedNarrative);
+        ICommand CreateLoadProjectCommand(Project project, string filePath);
+        ICommand CreateNewProjectCommand(Project project);
+        ICommand CreateSaveProjectCommand(Project project, string filePath);
+        ICommand CreateUpdateTaskCommand(TaskItem originalTask, TaskItem updatedTask);
+    }
 }

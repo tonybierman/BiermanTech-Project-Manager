@@ -14,7 +14,7 @@ public class TaskDialogViewModel : ViewModelBase
     private DateTimeOffset? _startDate;
     private double _durationDays;
     private double _percentComplete;
-    private TaskItem _dependsOn;
+    private List<TaskItem> _dependsOnList; // Changed to List<TaskItem>
     private readonly List<TaskItem> _tasks;
     private readonly TaskItem _task;
     private string _errorMessage;
@@ -31,7 +31,7 @@ public class TaskDialogViewModel : ViewModelBase
         set
         {
             this.RaiseAndSetIfChanged(ref _startDate, value);
-            Validate(); // Validate when StartDate changes
+            Validate();
         }
     }
 
@@ -47,19 +47,19 @@ public class TaskDialogViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _percentComplete, value);
     }
 
-    public TaskItem DependsOn
+    public List<TaskItem> DependsOnList // Changed to List<TaskItem>
     {
-        get => _dependsOn;
+        get => _dependsOnList;
         set
         {
-            this.RaiseAndSetIfChanged(ref _dependsOn, value);
-            Validate(); // Validate when DependsOn changes
+            this.RaiseAndSetIfChanged(ref _dependsOnList, value);
+            Validate();
         }
     }
 
     public List<TaskItem> AvailableTasks
     {
-        get => _tasks.Where(t => t != _task).ToList();
+        get => _tasks.Where(t => t != _task && !t.IsParent).ToList(); // Exclude parents
     }
 
     public string ErrorMessage
@@ -83,9 +83,9 @@ public class TaskDialogViewModel : ViewModelBase
         {
             TaskName = task.Name;
             StartDate = task.StartDate;
-            DurationDays = task.Duration.TotalDays;
+            DurationDays = task.Duration.HasValue ? task.Duration.Value.TotalDays : 0;
             PercentComplete = task.PercentComplete;
-            DependsOn = task.DependsOn;
+            DependsOnList = task.DependsOn != null ? new List<TaskItem>(task.DependsOn) : new List<TaskItem>();
         }
         else
         {
@@ -93,13 +93,11 @@ public class TaskDialogViewModel : ViewModelBase
             StartDate = DateTimeOffset.Now;
             DurationDays = 1;
             PercentComplete = 0;
-            DependsOn = null;
+            DependsOnList = new List<TaskItem>();
         }
 
-        // Initialize CanSave based on initial validation
         Validate();
 
-        // Define SaveCommand with a CanExecute condition
         SaveCommand = ReactiveCommand.Create(
             () =>
             {
@@ -110,15 +108,16 @@ public class TaskDialogViewModel : ViewModelBase
                     StartDate = StartDate.Value,
                     Duration = TimeSpan.FromDays(DurationDays),
                     PercentComplete = PercentComplete,
-                    DependsOn = DependsOn
+                    DependsOnIds = DependsOnList.Select(t => t.Id).ToList(), // Set DependsOnIds
+                    DependsOn = new List<TaskItem>(DependsOnList) // Set DependsOn for runtime
                 };
                 return _result;
             },
             this.WhenAnyValue(
                 x => x.StartDate,
-                x => x.DependsOn,
+                x => x.DependsOnList,
                 x => x.TaskName,
-                (startDate, dependsOn, taskName) =>
+                (startDate, dependsOnList, taskName) =>
                     !string.IsNullOrWhiteSpace(taskName) && startDate.HasValue && IsValid()
             )
         );
@@ -139,7 +138,6 @@ public class TaskDialogViewModel : ViewModelBase
         ErrorMessage = null;
         _canSave = true;
 
-        // Rule: Task name cannot be empty
         if (string.IsNullOrWhiteSpace(TaskName))
         {
             ErrorMessage = "Task Name is required.";
@@ -147,7 +145,6 @@ public class TaskDialogViewModel : ViewModelBase
             return;
         }
 
-        // Rule: Start date must be set
         if (!StartDate.HasValue)
         {
             ErrorMessage = "Start Date is required.";
@@ -155,12 +152,13 @@ public class TaskDialogViewModel : ViewModelBase
             return;
         }
 
-        // Rule: If the task depends on another task, its start date cannot be earlier than the depended task's start date
-        if (DependsOn != null && StartDate.HasValue)
+        if (DependsOnList != null && DependsOnList.Any())
         {
-            if (StartDate.Value < DependsOn.StartDate)
+            var latestDependencyEnd = DependsOnList.Max(t => t.EndDate);
+            if (StartDate.Value < latestDependencyEnd)
             {
-                ErrorMessage = $"Start Date cannot be earlier than the start date of '{DependsOn.Name}' ({DependsOn.StartDate:MMM dd, yyyy}).";
+                var latestTask = DependsOnList.First(t => t.EndDate == latestDependencyEnd);
+                ErrorMessage = $"Start Date cannot be earlier than the end date of '{latestTask.Name}' ({latestTask.EndDate:MMM dd, yyyy}).";
                 _canSave = false;
             }
         }

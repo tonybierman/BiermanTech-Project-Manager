@@ -32,10 +32,10 @@ public class GanttChartControl : TemplatedControl
             (o, v) => o.SelectedTask = v);
 
     private readonly GanttChartViewModel _viewModel;
-    private GanttChartRenderer _renderer; // Initialize later in OnApplyTemplate
+    private GanttChartRenderer _renderer;
     private Canvas _ganttCanvas;
     private Canvas _headerCanvas;
-    private Canvas _dateLinesCanvas; // Added for date lines
+    private Canvas _dateLinesCanvas;
     private ItemsControl _taskList;
     private ScrollViewer _taskListScrollViewer;
     private ScrollViewer _chartScrollViewer;
@@ -68,13 +68,11 @@ public class GanttChartControl : TemplatedControl
     {
         _viewModel = new GanttChartViewModel(taskRepository);
 
-        // Observe changes to Tasks, SelectedTask, and Bounds for rendering updates
         this.WhenAnyValue(x => x._viewModel.Tasks, x => x._viewModel.SelectedTask, x => x.Bounds)
             .Throttle(TimeSpan.FromMilliseconds(50))
             .ObserveOn(AvaloniaScheduler.Instance)
             .Subscribe(_ => UpdateGanttChart());
 
-        // Subscribe to changes in _viewModel.SelectedTask to raise property changed notification
         _viewModel.WhenAnyValue(x => x.SelectedTask)
             .Subscribe(selectedTask =>
             {
@@ -82,15 +80,15 @@ public class GanttChartControl : TemplatedControl
                 Log.Information("GanttChartControl SelectedTask changed, task: {TaskName}", selectedTask?.Name ?? "null");
             });
 
-        // Subscribe to changes in _viewModel.Tasks to update the task list
         _viewModel.WhenAnyValue(x => x.Tasks)
             .ObserveOn(AvaloniaScheduler.Instance)
             .Subscribe(tasks =>
             {
                 if (_taskList != null)
                 {
-                    _taskList.ItemsSource = tasks;
-                    Log.Information("GanttChartControl task list updated, task count: {TaskCount}", tasks?.Count ?? 0);
+                    // Flatten tasks for display
+                    _taskList.ItemsSource = FlattenTasks(tasks);
+                    Log.Information("GanttChartControl task list updated, task count: {TaskCount}", FlattenTasks(tasks)?.Count() ?? 0);
                 }
             });
     }
@@ -100,12 +98,11 @@ public class GanttChartControl : TemplatedControl
         base.OnApplyTemplate(e);
         _ganttCanvas = e.NameScope.Find<Canvas>("PART_GanttCanvas");
         _headerCanvas = e.NameScope.Find<Canvas>("PART_HeaderCanvas");
-        _dateLinesCanvas = e.NameScope.Find<Canvas>("PART_DateLinesCanvas"); // Added
+        _dateLinesCanvas = e.NameScope.Find<Canvas>("PART_DateLinesCanvas");
         _taskList = e.NameScope.Find<ItemsControl>("PART_TaskList");
         _taskListScrollViewer = e.NameScope.Find<ScrollViewer>("PART_TaskListScrollViewer");
         _chartScrollViewer = e.NameScope.Find<ScrollViewer>("PART_ChartScrollViewer");
 
-        // Initialize the renderer here, after the control is part of the visual tree
         _renderer = new GanttChartRenderer(this);
 
         if (_taskListScrollViewer != null && _chartScrollViewer != null)
@@ -116,7 +113,7 @@ public class GanttChartControl : TemplatedControl
 
         if (_taskList != null)
         {
-            _taskList.ItemsSource = _viewModel.Tasks;
+            _taskList.ItemsSource = FlattenTasks(_viewModel.Tasks);
         }
 
         UpdateGanttChart();
@@ -127,7 +124,7 @@ public class GanttChartControl : TemplatedControl
         return _renderer != null &&
                _ganttCanvas != null &&
                _headerCanvas != null &&
-               _dateLinesCanvas != null && // Added
+               _dateLinesCanvas != null &&
                _taskList != null &&
                _viewModel.Tasks != null &&
                _viewModel.Tasks.Any() &&
@@ -139,7 +136,8 @@ public class GanttChartControl : TemplatedControl
     {
         if (!IsValidForRendering()) return;
 
-        var layout = new GanttChartLayout(_viewModel.Tasks, Bounds.Width, Bounds.Height);
+        var flatTasks = FlattenTasks(_viewModel.Tasks).ToList();
+        var layout = new GanttChartLayout(flatTasks, Bounds.Width, Bounds.Height);
 
         Dispatcher.UIThread.Post(() =>
         {
@@ -155,19 +153,32 @@ public class GanttChartControl : TemplatedControl
                 }
             }
 
-            _renderer.RenderDateLines(_dateLinesCanvas, layout); // Render to separate canvas
-            _renderer.RenderHeader(_headerCanvas, _viewModel.Tasks, layout);
-            _renderer.RenderTasks(_ganttCanvas, _viewModel.Tasks, _viewModel.SelectedTask, layout, task => SelectedTask = task);
+            _renderer.RenderDateLines(_dateLinesCanvas, layout);
+            _renderer.RenderHeader(_headerCanvas, flatTasks, layout);
+            _renderer.RenderTasks(_ganttCanvas, flatTasks, _viewModel.SelectedTask, layout, task => SelectedTask = task);
             _renderer.RenderTodayLine(_ganttCanvas, new DateTimeOffset(2025, 4, 1, 0, 0, 0, TimeSpan.Zero), layout);
-            _renderer.RenderDependencies(_ganttCanvas, _viewModel.Tasks, layout);
+            _renderer.RenderDependencies(_ganttCanvas, flatTasks, layout);
 
             _headerCanvas.Width = layout.TotalDays * layout.PixelsPerDay;
             _headerCanvas.Height = layout.HeaderHeight;
             _ganttCanvas.Width = layout.TotalDays * layout.PixelsPerDay;
-            _ganttCanvas.Height = _viewModel.Tasks.Count * layout.RowHeight;
-            _dateLinesCanvas.Width = layout.TotalDays * layout.PixelsPerDay; // Set width for date lines canvas
-            _dateLinesCanvas.Height = _viewModel.Tasks.Count * layout.RowHeight; // Match height
+            _ganttCanvas.Height = flatTasks.Count * layout.RowHeight;
+            _dateLinesCanvas.Width = layout.TotalDays * layout.PixelsPerDay;
+            _dateLinesCanvas.Height = flatTasks.Count * layout.RowHeight;
         });
+    }
+
+    private IEnumerable<TaskItem> FlattenTasks(IEnumerable<TaskItem> tasks)
+    {
+        if (tasks == null) yield break;
+        foreach (var task in tasks)
+        {
+            yield return task;
+            foreach (var child in FlattenTasks(task.Children))
+            {
+                yield return child;
+            }
+        }
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)

@@ -55,7 +55,7 @@
 										</Grid.ColumnDefinitions>
 										<TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center" Margin="5" TextWrapping="Wrap"/>
 										<TextBlock Grid.Column="1" Text="{Binding StartDate, StringFormat='MMM dd, yyyy'}" VerticalAlignment="Center" Margin="5"/>
-										<TextBlock Grid.Column="2" Text="{Binding Duration.TotalDays, StringFormat='{}{0} days'}" VerticalAlignment="Center" Margin="5"/>
+										<TextBlock Grid.Column="2" Text="{Binding Duration.Value.TotalDays, StringFormat='{}{0} days', FallbackValue='N/A'}" VerticalAlignment="Center" Margin="5"/>
 									</Grid>
 								</DataTemplate>
 							</ItemsControl.ItemTemplate>

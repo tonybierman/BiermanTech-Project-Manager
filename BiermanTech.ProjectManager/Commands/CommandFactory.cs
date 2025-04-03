@@ -1,5 +1,6 @@
 ﻿using BiermanTech.ProjectManager.Models;
 using BiermanTech.ProjectManager.Services;
+using System;
 using System.Collections.Generic;
 
 namespace BiermanTech.ProjectManager.Commands;
@@ -15,9 +16,9 @@ public class CommandFactory : ICommandFactory
         _taskFileService = taskFileService;
     }
 
-    public ICommand CreateAddTaskCommand(TaskItem task)
+    public ICommand CreateAddTaskCommand(TaskItem task, Guid? parentTaskId = null)
     {
-        return new AddTaskCommand(task, _taskRepository);
+        return new AddTaskCommand(task, _taskRepository, parentTaskId);
     }
 
     public ICommand CreateUpdateTaskCommand(TaskItem originalTask, TaskItem updatedTask)
@@ -25,9 +26,9 @@ public class CommandFactory : ICommandFactory
         return new UpdateTaskCommand(originalTask, updatedTask, _taskRepository);
     }
 
-    public ICommand CreateDeleteTaskCommand(TaskItem task, int index, List<TaskItem> dependentTasks)
+    public ICommand CreateDeleteTaskCommand(TaskItem task)
     {
-        return new DeleteTaskCommand(task, index, dependentTasks, _taskRepository);
+        return new DeleteTaskCommand(task, _taskRepository);
     }
 
     public ICommand CreateSaveProjectCommand(Project project, string filePath)

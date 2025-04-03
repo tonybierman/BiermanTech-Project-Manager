@@ -41,18 +41,48 @@ public class TaskFileService
                 return new Project { Name = "Default Project", Author = "Unknown" };
             }
 
-            // Resolve DependsOn references
-            var taskDictionary = project.TaskItems.ToDictionary(t => t.Id, t => t);
-            foreach (var task in project.TaskItems)
+            // Build a dictionary of all tasks (including children) for dependency resolution
+            var taskDictionary = new Dictionary<Guid, TaskItem>();
+            void AddTasksToDictionary(IEnumerable<TaskItem> tasks)
             {
-                if (task.DependsOnId.HasValue && taskDictionary.TryGetValue(task.DependsOnId.Value, out var dependsOn))
+                foreach (var task in tasks)
                 {
-                    task.DependsOn = dependsOn;
+                    taskDictionary[task.Id] = task;
+                    if (task.Children.Any())
+                    {
+                        AddTasksToDictionary(task.Children);
+                    }
                 }
             }
+            AddTasksToDictionary(project.Tasks);
 
-            Log.Information("Loaded project '{ProjectName}' by {Author} with {TaskCount} tasks from {FilePath}",
-                project.Name, project.Author, project.TaskItems.Count, filePath);
+            // Resolve DependsOn references for all tasks
+            void ResolveDependencies(IEnumerable<TaskItem> tasks)
+            {
+                foreach (var task in tasks)
+                {
+                    task.DependsOn.Clear(); // Reset to avoid duplicates
+                    foreach (var depId in task.DependsOnIds)
+                    {
+                        if (taskDictionary.TryGetValue(depId, out var dependsOn))
+                        {
+                            task.DependsOn.Add(dependsOn);
+                        }
+                        else
+                        {
+                            Log.Warning("Dependency ID {DepId} for task {TaskId} not found.", depId, task.Id);
+                        }
+                    }
+                    if (task.Children.Any())
+                    {
+                        ResolveDependencies(task.Children);
+                    }
+                }
+            }
+            ResolveDependencies(project.Tasks);
+
+            Log.Information("Loaded project '{ProjectName}' by {Author} with {TaskCount} top-level tasks from {FilePath}",
+                project.Name, project.Author, project.Tasks.Count, filePath);
             return project;
         }
         catch (Exception ex)
@@ -70,11 +100,13 @@ public class TaskFileService
             var json = JsonSerializer.Serialize(project, new JsonSerializerOptions
             {
                 WriteIndented = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                // Ignore null values to keep JSON clean (optional)
+                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
             });
             await File.WriteAllTextAsync(filePath, json);
-            Log.Information("Saved project '{ProjectName}' by {Author} with {TaskCount} tasks to {FilePath}",
-                project.Name, project.Author, project.TaskItems.Count, filePath);
+            Log.Information("Saved project '{ProjectName}' by {Author} with {TaskCount} top-level tasks to {FilePath}",
+                project.Name, project.Author, project.Tasks.Count, filePath);
         }
         catch (Exception ex)
         {

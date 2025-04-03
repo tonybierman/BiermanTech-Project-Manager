@@ -12,12 +12,12 @@
 		<!-- Status Bar -->
 		<DockPanel DockPanel.Dock="Bottom" Background="LightGray" Height="30" LastChildFill="True">
 			<!-- Project Metadata -->
-			<!--<StackPanel Orientation="Horizontal" Margin="5,0">
+			<StackPanel Orientation="Horizontal" Margin="5,0">
 				<TextBlock Text="Project: " FontWeight="Bold" VerticalAlignment="Center" />
 				<TextBlock Text="{Binding ProjectName}" Margin="0,0,10,0" VerticalAlignment="Center" />
 				<TextBlock Text="Author: " FontWeight="Bold" VerticalAlignment="Center" />
 				<TextBlock Text="{Binding ProjectAuthor}" VerticalAlignment="Center" />
-			</StackPanel>-->
+			</StackPanel>
 
 			<!-- Notification Area -->
 			<TextBlock x:Name="NotificationText" Text="{Binding NotificationMessage}"

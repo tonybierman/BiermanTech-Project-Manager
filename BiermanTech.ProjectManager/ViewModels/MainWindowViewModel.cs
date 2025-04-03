@@ -33,7 +33,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private string _notificationMessage;
     private readonly Timer _notificationTimer;
     private readonly BehaviorSubject<bool> _editNarrativeCanExecuteSubject;
-    private string _currentFilePath; // Track the current file path
+    private string _currentFilePath;
 
     public List<TaskItem> Tasks
     {
@@ -58,7 +58,20 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         {
             this.RaiseAndSetIfChanged(ref _project, value);
             _editNarrativeCanExecuteSubject.OnNext(_project != null);
+            this.RaisePropertyChanged(nameof(ProjectName));
+            this.RaisePropertyChanged(nameof(ProjectAuthor));
+            this.RaisePropertyChanged(nameof(Narrative));
+            this.RaisePropertyChanged(nameof(ProjectSituation));
+            this.RaisePropertyChanged(nameof(ProjectCurrentState));
+            this.RaisePropertyChanged(nameof(ProjectPlan));
+            this.RaisePropertyChanged(nameof(ProjectResults));
         }
+    }
+
+    public string NotificationMessage
+    {
+        get => _notificationMessage;
+        set => this.RaiseAndSetIfChanged(ref _notificationMessage, value);
     }
 
     public string ProjectName => Project?.Name;
@@ -69,23 +82,18 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     public string ProjectPlan => Narrative?.Plan ?? string.Empty;
     public string ProjectResults => Narrative?.Results ?? string.Empty;
 
-    public string NotificationMessage
-    {
-        get => _notificationMessage;
-        set => this.RaiseAndSetIfChanged(ref _notificationMessage, value);
-    }
-
     public ReactiveCommand<Unit, Unit> CreateTaskCommand { get; }
     public ReactiveCommand<Unit, Unit> UpdateTaskCommand { get; }
     public ReactiveCommand<Unit, Unit> DeleteTaskCommand { get; }
     public ReactiveCommand<Unit, Unit> UndoCommand { get; }
     public ReactiveCommand<Unit, Unit> RedoCommand { get; }
-    public ReactiveCommand<Unit, Unit> SaveProjectCommand { get; } 
-    public ReactiveCommand<Unit, Unit> SaveAsProjectCommand { get; } 
+    public ReactiveCommand<Unit, Unit> SaveProjectCommand { get; }
+    public ReactiveCommand<Unit, Unit> SaveAsProjectCommand { get; }
     public ReactiveCommand<Unit, Unit> LoadProjectCommand { get; }
     public ReactiveCommand<Unit, Unit> NewProjectCommand { get; }
     public ReactiveCommand<Unit, Unit> EditNarrativeCommand { get; }
-    public ReactiveCommand<Unit, Unit> SaveAsPdfCommand { get; } 
+    public ReactiveCommand<Unit, Unit> SaveAsPdfCommand { get; }
+
     public MainWindowViewModel(
         ITaskRepository taskRepository,
         ICommandManager commandManager,
@@ -103,13 +111,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         _taskDataSeeder = taskDataSeeder;
         _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
 
-        // Initialize CanExecute subject
         _editNarrativeCanExecuteSubject = new BehaviorSubject<bool>(false);
-
-        // Initialize Tasks
         _tasks = new List<TaskItem>();
-
-        // Set up notification timer (clears message after 5 seconds)
         _notificationTimer = new Timer(5000);
         _notificationTimer.Elapsed += (s, e) =>
         {
@@ -118,7 +121,6 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         };
         _notificationTimer.AutoReset = false;
 
-        // Subscribe to task changes from the repository
         _taskChangedSubscription = Observable.FromEventPattern<EventHandler, EventArgs>(
             h => _taskRepository.TasksChanged += h,
             h => _taskRepository.TasksChanged -= h)
@@ -128,21 +130,11 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
                 var newTasks = _taskRepository.GetTasks();
                 if (newTasks != null)
                 {
-                    // Update Tasks
                     Tasks = new List<TaskItem>(newTasks);
-
-                    // Update SelectedTask to point to the corresponding task in the new list
                     if (_selectedTask != null)
                     {
-                        var newSelectedTask = Tasks.FirstOrDefault(t => t.Id == _selectedTask.Id);
-                        if (newSelectedTask != null)
-                        {
-                            SelectedTask = newSelectedTask;
-                        }
-                        else
-                        {
-                            SelectedTask = null; // Task no longer exists (e.g., deleted)
-                        }
+                        var newSelectedTask = FindTaskById(Tasks, _selectedTask.Id);
+                        SelectedTask = newSelectedTask;
                     }
                 }
                 else
@@ -156,12 +148,12 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         {
             try
             {
-                var result = await _dialogService.ShowTaskDialog(null, Tasks, _mainWindow);
+                var flatTasks = FlattenTasks(Tasks).ToList();
+                var result = await _dialogService.ShowTaskDialog(null, flatTasks, _mainWindow);
                 if (result != null)
                 {
                     var command = _commandFactory.CreateAddTaskCommand(result);
                     _commandManager.ExecuteCommand(command);
-                    Log.Information("Publishing TaskAdded for task: {TaskName}", result.Name);
                     _messageBus.Publish(new TaskAdded(result));
                     ShowNotification($"Task '{result.Name}' added.");
                 }
@@ -178,24 +170,15 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         {
             try
             {
-                if (SelectedTask == null) return;
+                if (SelectedTask == null || SelectedTask.IsParent) return;
 
-                var originalTask = new TaskItem
-                {
-                    Id = SelectedTask.Id,
-                    Name = SelectedTask.Name,
-                    StartDate = SelectedTask.StartDate,
-                    Duration = SelectedTask.Duration,
-                    PercentComplete = SelectedTask.PercentComplete,
-                    DependsOn = SelectedTask.DependsOn
-                };
-
-                var result = await _dialogService.ShowTaskDialog(SelectedTask, Tasks, _mainWindow);
+                var originalTask = DeepCopyTask(SelectedTask);
+                var flatTasks = FlattenTasks(Tasks).ToList();
+                var result = await _dialogService.ShowTaskDialog(SelectedTask, flatTasks, _mainWindow);
                 if (result != null)
                 {
                     var command = _commandFactory.CreateUpdateTaskCommand(originalTask, result);
                     _commandManager.ExecuteCommand(command);
-                    Log.Information("Publishing TaskUpdated for task: {TaskName}", result.Name);
                     _messageBus.Publish(new TaskUpdated(result));
                     ShowNotification($"Task '{result.Name}' updated.");
                 }
@@ -207,13 +190,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
                 throw;
             }
         }, this.WhenAnyValue(x => x.SelectedTask)
-            .Select(x => x != null)
-            .Do(canExecute => Log.Information("UpdateTaskCommand CanExecute: {CanExecute}", canExecute))
-            .Catch<bool, Exception>(ex =>
-            {
-                Log.Error(ex, "Error in UpdateTaskCommand CanExecute");
-                return Observable.Return(false);
-            }));
+            .Select(x => x != null && !x.IsParent)
+            .Do(canExecute => Log.Information("UpdateTaskCommand CanExecute: {CanExecute}", canExecute)));
 
         DeleteTaskCommand = ReactiveCommand.Create(() =>
         {
@@ -222,11 +200,11 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
                 if (SelectedTask == null) return;
 
                 var taskToDelete = SelectedTask;
-                int index = Tasks.IndexOf(taskToDelete);
-                var dependentTasks = Tasks.Where(t => t.DependsOn == taskToDelete).ToList();
-                var command = _commandFactory.CreateDeleteTaskCommand(taskToDelete, index, dependentTasks);
+                int index = FlattenTasks(Tasks).ToList().IndexOf(taskToDelete);
+                var dependentTasks = FlattenTasks(Tasks).Where(t => t.DependsOn.Contains(taskToDelete)).ToList();
+                // TODO: var command = _commandFactory.CreateDeleteTaskCommand(taskToDelete, index, dependentTasks);
+                var command = _commandFactory.CreateDeleteTaskCommand(taskToDelete);
                 _commandManager.ExecuteCommand(command);
-                Log.Information("Publishing TaskDeleted for task: {TaskName}", taskToDelete.Name);
                 _messageBus.Publish(new TaskDeleted(taskToDelete));
                 ShowNotification($"Task '{taskToDelete.Name}' deleted.");
                 SelectedTask = null;
@@ -239,12 +217,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
             }
         }, this.WhenAnyValue(x => x.SelectedTask)
             .Select(x => x != null)
-            .Do(canExecute => Log.Information("DeleteTaskCommand CanExecute: {CanExecute}", canExecute))
-            .Catch<bool, Exception>(ex =>
-            {
-                Log.Error(ex, "Error in DeleteTaskCommand CanExecute");
-                return Observable.Return(false);
-            }));
+            .Do(canExecute => Log.Information("DeleteTaskCommand CanExecute: {CanExecute}", canExecute)));
 
         var canUndoObservable = this.WhenAnyValue(x => x._commandManager.CanUndo)
             .Do(canUndo => Log.Information("CanUndo changed: {CanUndo}", canUndo))
@@ -280,7 +253,6 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
             {
                 if (string.IsNullOrEmpty(_currentFilePath))
                 {
-                    // If no file path is set, fall back to SaveAs behavior
                     await SaveAsProjectCommand.Execute();
                     return;
                 }
@@ -343,10 +315,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
                     var command = _commandFactory.CreateLoadProjectCommand(Project, _currentFilePath);
                     _commandManager.ExecuteCommand(command);
                     ShowNotification($"Project loaded from {_currentFilePath}.");
-                    // Notify UI of project metadata changes
                     this.RaisePropertyChanged(nameof(ProjectName));
                     this.RaisePropertyChanged(nameof(ProjectAuthor));
-                    // Notify UI of narrative changes
                     this.RaisePropertyChanged(nameof(Narrative));
                     this.RaisePropertyChanged(nameof(ProjectSituation));
                     this.RaisePropertyChanged(nameof(ProjectCurrentState));
@@ -368,12 +338,10 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
             {
                 var command = _commandFactory.CreateNewProjectCommand(Project);
                 _commandManager.ExecuteCommand(command);
-                _currentFilePath = null; // Reset file path for new project
+                _currentFilePath = null;
                 ShowNotification("New project created.");
-                // Notify UI of project metadata changes
                 this.RaisePropertyChanged(nameof(ProjectName));
                 this.RaisePropertyChanged(nameof(ProjectAuthor));
-                // Notify UI of narrative changes
                 this.RaisePropertyChanged(nameof(Narrative));
                 this.RaisePropertyChanged(nameof(ProjectSituation));
                 this.RaisePropertyChanged(nameof(ProjectCurrentState));
@@ -406,7 +374,6 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
                     var command = _commandFactory.CreateEditNarrativeCommand(Project, originalNarrative, result);
                     _commandManager.ExecuteCommand(command);
                     Log.Information("Project narrative updated.");
-                    // Notify UI of narrative changes
                     this.RaisePropertyChanged(nameof(Narrative));
                     this.RaisePropertyChanged(nameof(ProjectSituation));
                     this.RaisePropertyChanged(nameof(ProjectCurrentState));
@@ -439,21 +406,17 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
 
                 if (file != null)
                 {
-                    AvaloniaUI.PrintToPDF.Print.ToFile(
-                        file.Path.LocalPath,
-                       _mainWindow
-                    );
+                    AvaloniaUI.PrintToPDF.Print.ToFile(file.Path.LocalPath, _mainWindow);
                 }
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error in SaveAsImageCommand");
-                ShowNotification("Error saving window as image.");
+                Log.Error(ex, "Error in SaveAsPdfCommand");
+                ShowNotification("Error saving window as PDF.");
                 throw;
             }
         });
     }
-
 
     public async Task Initialize()
     {
@@ -461,7 +424,6 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         Tasks = new List<TaskItem>(_taskRepository.GetTasks());
         this.RaisePropertyChanged(nameof(ProjectName));
         this.RaisePropertyChanged(nameof(ProjectAuthor));
-        // Notify UI of narrative changes
         this.RaisePropertyChanged(nameof(Narrative));
         this.RaisePropertyChanged(nameof(ProjectSituation));
         this.RaisePropertyChanged(nameof(ProjectCurrentState));
@@ -481,5 +443,44 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         NotificationMessage = message;
         _notificationTimer.Stop();
         _notificationTimer.Start();
+    }
+
+    private TaskItem FindTaskById(IEnumerable<TaskItem> tasks, Guid id)
+    {
+        foreach (var task in tasks)
+        {
+            if (task.Id == id) return task;
+            var found = FindTaskById(task.Children, id);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    private IEnumerable<TaskItem> FlattenTasks(IEnumerable<TaskItem> tasks)
+    {
+        if (tasks == null) yield break;
+        foreach (var task in tasks)
+        {
+            yield return task;
+            foreach (var child in FlattenTasks(task.Children))
+            {
+                yield return child;
+            }
+        }
+    }
+
+    private TaskItem DeepCopyTask(TaskItem task)
+    {
+        return new TaskItem
+        {
+            Id = task.Id,
+            Name = task.Name,
+            StartDate = task.StartDate,
+            Duration = task.Duration,
+            PercentComplete = task.PercentComplete,
+            DependsOnIds = new List<Guid>(task.DependsOnIds),
+            DependsOn = new List<TaskItem>(task.DependsOn),
+            Children = task.Children.Select(DeepCopyTask).ToList()
+        };
     }
 }

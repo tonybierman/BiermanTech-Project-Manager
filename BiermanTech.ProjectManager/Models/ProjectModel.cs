@@ -7,10 +7,6 @@ public class Project
 {
     public string Name { get; set; }
     public string Author { get; set; }
-
-    [JsonPropertyName("Tasks")]
-    public List<TaskItem> TaskItems { get; set; } = new List<TaskItem>();
-
-    [JsonPropertyName("Narrative")]
-    public ProjectNarrative Narrative { get; set; } = new ProjectNarrative();
+    public List<TaskItem> Tasks { get; set; } = new List<TaskItem>();
+    public ProjectNarrative Narrative { get; set; }
 }

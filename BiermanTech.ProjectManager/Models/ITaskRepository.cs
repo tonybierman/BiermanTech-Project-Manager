@@ -1,13 +1,14 @@
-﻿using System;
+﻿using BiermanTech.ProjectManager.Models;
 using System.Collections.Generic;
+using System;
 
-namespace BiermanTech.ProjectManager.Models;
+namespace BiermanTech.ProjectManager.Services;
 
 public interface ITaskRepository
 {
-    List<TaskItem> GetTasks();
-    void AddTask(TaskItem task);
-    void RemoveTask(TaskItem task);
     event EventHandler TasksChanged;
-    void NotifyTasksChanged(); // Add this method to invoke the event
+    List<TaskItem> GetTasks();
+    void AddTask(TaskItem task, Guid? parentTaskId = null); // Updated signature
+    void RemoveTask(TaskItem task);
+    void NotifyTasksChanged();
 }

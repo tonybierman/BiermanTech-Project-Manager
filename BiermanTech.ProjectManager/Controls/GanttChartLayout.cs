@@ -17,15 +17,15 @@ public class GanttChartLayout
     public double RowHeight { get; }
     public DateTimeOffset MinDate { get; }
 
-    public GanttChartLayout(List<TaskItem> tasks, double controlWidth, double controlHeight)
+    public GanttChartLayout(List<TaskItem> flatTasks, double controlWidth, double controlHeight)
     {
         TaskListWidth = GanttChartConfig.TaskListWidth;
         ChartWidth = Math.Max(controlWidth - TaskListWidth, 1);
         HeaderHeight = GanttChartConfig.HeaderHeight;
         ChartHeight = Math.Max(controlHeight - HeaderHeight, 1);
-        MinDate = tasks.Min(t => t.StartDate);
-        TotalDays = (tasks.Max(t => t.EndDate) - MinDate).TotalDays + 1;
+        MinDate = flatTasks.Min(t => t.CalculatedStartDate); // Use CalculatedStartDate for parents
+        TotalDays = (flatTasks.Max(t => t.EndDate) - MinDate).TotalDays + 1;
         PixelsPerDay = Math.Max(ChartWidth / TotalDays, GanttChartConfig.MinPixelsPerDay);
-        RowHeight = Math.Max(ChartHeight / tasks.Count, GanttChartConfig.MinRowHeight);
+        RowHeight = Math.Max(ChartHeight / flatTasks.Count, GanttChartConfig.MinRowHeight);
     }
 }

@@ -2,6 +2,8 @@
 using BiermanTech.ProjectManager.Services;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Linq;
+using System;
 
 namespace BiermanTech.ProjectManager.Commands;
 
@@ -21,14 +23,9 @@ public class LoadProjectCommand : ICommand
         _taskFileService = taskFileService;
         _filePath = filePath;
 
-        // Store the previous state for undo
-        _previousProjectState = new Project
-        {
-            Name = project.Name,
-            Author = project.Author,
-            TaskItems = new List<TaskItem>(project.TaskItems)
-        };
-        _previousTasks = new List<TaskItem>(_taskRepository.GetTasks());
+        // Store the previous state for undo (deep copy)
+        _previousProjectState = DeepCopyProject(project);
+        _previousTasks = DeepCopyTaskList(_taskRepository.GetTasks());
     }
 
     public void Execute()
@@ -39,16 +36,13 @@ public class LoadProjectCommand : ICommand
         // Update the current project with the loaded data
         _project.Name = loadedProject.Name;
         _project.Author = loadedProject.Author;
-        _project.TaskItems.Clear();
-        _project.TaskItems.AddRange(loadedProject.TaskItems);
+        _project.Tasks.Clear();
+        _project.Tasks.AddRange(loadedProject.Tasks);
 
         // Update the repository with the loaded tasks
         var currentTasks = _taskRepository.GetTasks();
         currentTasks.Clear();
-        foreach (var task in _project.TaskItems)
-        {
-            currentTasks.Add(task);
-        }
+        AddTasksRecursively(currentTasks, loadedProject.Tasks);
         _taskRepository.NotifyTasksChanged();
     }
 
@@ -57,8 +51,8 @@ public class LoadProjectCommand : ICommand
         // Restore the previous project state
         _project.Name = _previousProjectState.Name;
         _project.Author = _previousProjectState.Author;
-        _project.TaskItems.Clear();
-        _project.TaskItems.AddRange(_previousProjectState.TaskItems);
+        _project.Tasks.Clear();
+        _project.Tasks.AddRange(_previousProjectState.Tasks);
 
         // Restore the previous tasks in the repository
         var currentTasks = _taskRepository.GetTasks();
@@ -68,5 +62,58 @@ public class LoadProjectCommand : ICommand
             currentTasks.Add(task);
         }
         _taskRepository.NotifyTasksChanged();
+    }
+
+    // Helper method to deep copy a Project
+    private Project DeepCopyProject(Project source)
+    {
+        return new Project
+        {
+            Name = source.Name,
+            Author = source.Author,
+            Tasks = DeepCopyTaskList(source.Tasks),
+            Narrative = source.Narrative != null ? new ProjectNarrative
+            {
+                Situation = source.Narrative.Situation,
+                CurrentState = source.Narrative.CurrentState,
+                Plan = source.Narrative.Plan,
+                Results = source.Narrative.Results
+            } : null
+        };
+    }
+
+    // Helper method to deep copy a list of TaskItems, including children
+    private List<TaskItem> DeepCopyTaskList(IEnumerable<TaskItem> source)
+    {
+        var copy = new List<TaskItem>();
+        foreach (var task in source)
+        {
+            var newTask = new TaskItem
+            {
+                Id = task.Id,
+                Name = task.Name,
+                StartDate = task.StartDate,
+                Duration = task.Duration,
+                PercentComplete = task.PercentComplete,
+                DependsOnIds = new List<Guid>(task.DependsOnIds),
+                DependsOn = new List<TaskItem>(), // Will be resolved later if needed
+                Children = DeepCopyTaskList(task.Children)
+            };
+            copy.Add(newTask);
+        }
+        return copy;
+    }
+
+    // Helper method to add tasks and their children to the repository
+    private void AddTasksRecursively(IList<TaskItem> target, IEnumerable<TaskItem> tasks)
+    {
+        foreach (var task in tasks)
+        {
+            target.Add(task);
+            if (task.Children.Any())
+            {
+                AddTasksRecursively(target, task.Children);
+            }
+        }
     }
 }

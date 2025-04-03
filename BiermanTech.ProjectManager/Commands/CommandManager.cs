@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
-using System.ComponentModel; // Add for INotifyPropertyChanged
-using System.Runtime.CompilerServices; // Add for CallerMemberName
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace BiermanTech.ProjectManager.Commands;
 

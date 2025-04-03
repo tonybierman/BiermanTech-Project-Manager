@@ -7,6 +7,7 @@ using BiermanTech.ProjectManager.Controls;
 using BiermanTech.ProjectManager.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace BiermanTech.ProjectManager.Services;
 
@@ -47,9 +48,9 @@ public class GanttChartRenderer
 
     public (double X, double Width, double Y) CalculateTaskPosition(TaskItem task, DateTimeOffset minDate, double pixelsPerDay, double rowHeight, int rowIndex)
     {
-        int dayOffset = GetDayOffset(task.StartDate, minDate);
+        int dayOffset = GetDayOffset(task.CalculatedStartDate, minDate); // Use CalculatedStartDate
         double x = CalculateXForDayOffset(dayOffset, pixelsPerDay);
-        double width = task.Duration.TotalDays * pixelsPerDay;
+        double width = task.CalculatedDuration.TotalDays * pixelsPerDay; // Use CalculatedDuration
         double y = rowIndex * rowHeight;
         return (x, width, y);
     }
@@ -68,25 +69,17 @@ public class GanttChartRenderer
         int depDayOffset = GetDayOffset(dependsOn.EndDate, minDate);
         double depEndX = CalculateXForDayOffset(depDayOffset, pixelsPerDay);
         double depY = depIndex * rowHeight + (rowHeight / 2);
-        int startDayOffset = GetDayOffset(task.StartDate, minDate);
+        int startDayOffset = GetDayOffset(task.CalculatedStartDate, minDate);
         double startX = CalculateXForDayOffset(startDayOffset, pixelsPerDay);
         double startY = taskIndex * rowHeight + (rowHeight / 2);
 
-        // Center the vertical portion within the day
         double halfDayWidth = pixelsPerDay / 2;
-        double depVerticalX = depEndX + halfDayWidth; // Center in the day after depEndX
-        double startVerticalX = startX + halfDayWidth; // Center in the day of startX
+        double depVerticalX = depEndX + halfDayWidth;
+        double startVerticalX = startX + halfDayWidth;
 
-        // Line from dependency end to the centered vertical segment
         lines.Add((new Point(depEndX, depY), new Point(depVerticalX, depY), false));
-
-        // Vertical segment, centered in the day
         lines.Add((new Point(depVerticalX, depY), new Point(depVerticalX, startY), false));
-
-        // Line from vertical segment to task start (with centering adjustment)
         lines.Add((new Point(depVerticalX, startY), new Point(startX, startY), false));
-
-        // Arrowhead at the task start
         lines.Add((new Point(startX, startY), new Point(startX - GanttChartConfig.ArrowSize, startY - GanttChartConfig.ArrowSize), true));
         lines.Add((new Point(startX, startY), new Point(startX - GanttChartConfig.ArrowSize, startY + GanttChartConfig.ArrowSize), true));
 
@@ -100,7 +93,6 @@ public class GanttChartRenderer
         string lastMonthDisplayed = null;
 
         DateTimeOffset normalizedMinDate = NormalizeToMidnight(layout.MinDate);
-        // Render one extra line to ensure the last day has full width
         for (int dayOffset = 0; dayOffset <= layout.TotalDays; dayOffset++)
         {
             DateTimeOffset date = normalizedMinDate.AddDays(dayOffset);
@@ -115,7 +107,6 @@ public class GanttChartRenderer
             };
             headerCanvas.Children.Add(line);
 
-            // Only render text up to the last day, not the extra line
             if (dayOffset < layout.TotalDays)
             {
                 if (date.Day == 1 || dayOffset == 0)
@@ -156,29 +147,28 @@ public class GanttChartRenderer
         int rowIndex = 0;
         foreach (var task in tasks)
         {
-            int dayOffset = GetDayOffset(task.StartDate, layout.MinDate);
+            int dayOffset = GetDayOffset(task.CalculatedStartDate, layout.MinDate);
             double x = CalculateXForDayOffset(dayOffset, layout.PixelsPerDay);
             double y = rowIndex * layout.RowHeight;
             double taskHeight = Math.Min(Math.Max(layout.RowHeight - GanttChartConfig.TaskHeightPadding, 1), GanttChartConfig.TaskBarHeight);
-            double centerY = y + (layout.RowHeight / 2); // Center vertically in the row
+            double centerY = y + (layout.RowHeight / 2);
 
-            if (task.Duration.TotalDays == 0)
+            if (task.CalculatedDuration.TotalDays == 0)
             {
-                // Render a black diamond for tasks with 0 duration, vertically centered
-                double diamondWidth = layout.PixelsPerDay; // Width of one day
+                double diamondWidth = layout.PixelsPerDay;
                 double halfWidth = diamondWidth / 2;
                 double halfHeight = taskHeight / 2;
 
                 var diamond = new Polygon
                 {
-                    Points = new Avalonia.Collections.AvaloniaList<Point>
-                {
-                    new Point(x + halfWidth, centerY - halfHeight), // Top point
-                    new Point(x + diamondWidth, centerY),           // Right point
-                    new Point(x + halfWidth, centerY + halfHeight), // Bottom point
-                    new Point(x, centerY)                           // Left point
-                },
-                    Fill = Brushes.Black, // Black fill
+                    Points = new AvaloniaList<Point>
+                    {
+                        new Point(x + halfWidth, centerY - halfHeight),
+                        new Point(x + diamondWidth, centerY),
+                        new Point(x + halfWidth, centerY + halfHeight),
+                        new Point(x, centerY)
+                    },
+                    Fill = Brushes.Black,
                     Stroke = GetResource<ISolidColorBrush>("TaskBorderBrush"),
                     StrokeThickness = GetResource<double>("TaskBorderThickness"),
                     Tag = task
@@ -196,8 +186,7 @@ public class GanttChartRenderer
             }
             else
             {
-                // Existing rectangle rendering for tasks with duration > 0
-                double width = task.Duration.TotalDays * layout.PixelsPerDay;
+                double width = task.CalculatedDuration.TotalDays * layout.PixelsPerDay;
 
                 var rect = new Rectangle
                 {
@@ -259,40 +248,47 @@ public class GanttChartRenderer
 
     public void RenderDependencies(Canvas ganttCanvas, List<TaskItem> tasks, GanttChartLayout layout)
     {
+        ganttCanvas.Children.Clear(); // Clear previous dependencies
         int rowIndex = 0;
         foreach (var task in tasks)
         {
-            if (task.DependsOn != null)
+            if (task.DependsOn != null && task.DependsOn.Any())
             {
-                int depIndex = tasks.IndexOf(task.DependsOn);
-                var lines = CalculateDependencyLines(task, task.DependsOn, layout.MinDate, layout.PixelsPerDay, layout.RowHeight, rowIndex, depIndex);
-
-                foreach (var (start, end, isArrow) in lines)
+                foreach (var dependsOn in task.DependsOn)
                 {
-                    if (isArrow)
+                    int depIndex = tasks.IndexOf(dependsOn);
+                    if (depIndex >= 0) // Ensure dependency exists in the flat list
                     {
-                        var arrow = new Polygon
+                        var lines = CalculateDependencyLines(task, dependsOn, layout.MinDate, layout.PixelsPerDay, layout.RowHeight, rowIndex, depIndex);
+
+                        foreach (var (start, end, isArrow) in lines)
                         {
-                            Points = new Avalonia.Collections.AvaloniaList<Point>
+                            if (isArrow)
                             {
-                                start,
-                                new Point(end.X, end.Y),
-                                new Point(end.X, start.Y + (end.Y - start.Y) / 2)
-                            },
-                            Fill = GetResource<ISolidColorBrush>("DependencyLineBrush")
-                        };
-                        ganttCanvas.Children.Add(arrow);
-                    }
-                    else
-                    {
-                        var line = new Line
-                        {
-                            StartPoint = start,
-                            EndPoint = end,
-                            Stroke = GetResource<ISolidColorBrush>("DependencyLineBrush"),
-                            StrokeThickness = GetResource<double>("DependencyLineThickness")
-                        };
-                        ganttCanvas.Children.Add(line);
+                                var arrow = new Polygon
+                                {
+                                    Points = new AvaloniaList<Point>
+                                    {
+                                        start,
+                                        new Point(end.X, end.Y),
+                                        new Point(end.X, start.Y + (end.Y - start.Y) / 2)
+                                    },
+                                    Fill = GetResource<ISolidColorBrush>("DependencyLineBrush")
+                                };
+                                ganttCanvas.Children.Add(arrow);
+                            }
+                            else
+                            {
+                                var line = new Line
+                                {
+                                    StartPoint = start,
+                                    EndPoint = end,
+                                    Stroke = GetResource<ISolidColorBrush>("DependencyLineBrush"),
+                                    StrokeThickness = GetResource<double>("DependencyLineThickness")
+                                };
+                                ganttCanvas.Children.Add(line);
+                            }
+                        }
                     }
                 }
             }
@@ -305,7 +301,6 @@ public class GanttChartRenderer
         dateLinesCanvas.Children.Clear();
         DateTimeOffset normalizedMinDate = NormalizeToMidnight(layout.MinDate);
 
-        // Render one extra line to ensure the last day has full width
         for (int dayOffset = 0; dayOffset <= layout.TotalDays; dayOffset++)
         {
             double x = CalculateXForDayOffset(dayOffset, layout.PixelsPerDay);

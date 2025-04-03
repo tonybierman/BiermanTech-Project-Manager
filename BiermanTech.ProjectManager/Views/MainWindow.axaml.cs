@@ -28,7 +28,6 @@ public partial class MainWindow : Window
             this
         );
 
-        // Set up MenuBarControl's DataContext
         var menuBarControl = this.FindControl<MenuBarControl>("MenuBarControl");
         if (menuBarControl != null)
         {
