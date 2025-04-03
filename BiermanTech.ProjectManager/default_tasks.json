@@ -1,78 +1,206 @@
 {
-  "Name": "Sample Project",
+  "Name": "Enterprise Software Upgrade",
   "Author": "Tony Bierman",
   "Tasks": [
     {
-      "Id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-      "Name": "Planning Phase",
+      "Id": "e7f6c011-8b5b-4d7b-9f3a-1c2d3e4f5a6b",
+      "Name": "Project Initiation",
       "Children": [
         {
-          "Id": "b1c2d3e4-f5f6-7890-abcd-ef1234567891",
-          "Name": "Initial Planning",
+          "Id": "f8e9d012-9c6d-4e8c-a04b-2d3e4f5a6b7c",
+          "Name": "Stakeholder Meetings",
           "StartDate": "2025-04-01T00:00:00+00:00",
-          "Duration": "3.00:00:00",
-          "PercentComplete": 50,
-          "DependsOnIds": []
+          "Duration": "5.00:00:00",
+          "PercentComplete": 75,
+          "DependsOnIds": [],
+          "Children": [
+            {
+              "Id": "a9b0c123-0d7e-4f9d-b15c-3e4f5a6b7c8d",
+              "Name": "Kickoff Meeting",
+              "StartDate": "2025-04-01T00:00:00+00:00",
+              "Duration": "1.00:00:00",
+              "PercentComplete": 100,
+              "DependsOnIds": []
+            },
+            {
+              "Id": "b0c1d234-1e8f-5a0e-c26d-4f5a6b7c8d9e",
+              "Name": "Requirements Gathering",
+              "StartDate": "2025-04-02T00:00:00+00:00",
+              "Duration": "4.00:00:00",
+              "PercentComplete": 60,
+              "DependsOnIds": [ "a9b0c123-0d7e-4f9d-b15c-3e4f5a6b7c8d" ]
+            }
+          ]
         },
         {
-          "Id": "c2d3e4f5-f6f7-8901-bcde-f23456789012",
-          "Name": "Resource Allocation",
-          "StartDate": "2025-04-04T00:00:00+00:00",
-          "Duration": "2.00:00:00",
-          "PercentComplete": 0,
-          "DependsOnIds": [ "b1c2d3e4-f5f6-7890-abcd-ef1234567891" ]
-        },
-        {
-          "Id": "d3e4f5f6-f7f8-9012-cdef-345678901234",
-          "Name": "Risk Assessment",
+          "Id": "c1d2e345-2f90-6b1f-d37e-5a6b7c8d9e0f",
+          "Name": "Budget Approval",
           "StartDate": "2025-04-06T00:00:00+00:00",
           "Duration": "3.00:00:00",
           "PercentComplete": 0,
-          "DependsOnIds": [
-            "b1c2d3e4-f5f6-7890-abcd-ef1234567891",
-            "c2d3e4f5-f6f7-8901-bcde-f23456789012"
+          "DependsOnIds": [ "f8e9d012-9c6d-4e8c-a04b-2d3e4f5a6b7c" ]
+        }
+      ]
+    },
+    {
+      "Id": "d2e3f456-3a01-7c20-e48f-6b7c8d9e0f1a",
+      "Name": "Planning Phase",
+      "Children": [
+        {
+          "Id": "e3f4a567-4b12-8d31-f59a-7c8d9e0f1a2b",
+          "Name": "Technical Design",
+          "StartDate": "2025-04-09T00:00:00+00:00",
+          "Duration": "7.00:00:00",
+          "PercentComplete": 20,
+          "DependsOnIds": [ "c1d2e345-2f90-6b1f-d37e-5a6b7c8d9e0f" ],
+          "Children": [
+            {
+              "Id": "f4a5b678-5c23-9e42-a6ab-8d9e0f1a2b3c",
+              "Name": "Architecture Review",
+              "StartDate": "2025-04-09T00:00:00+00:00",
+              "Duration": "3.00:00:00",
+              "PercentComplete": 40,
+              "DependsOnIds": []
+            },
+            {
+              "Id": "a5b6c789-6d34-0f53-b7bc-9e0f1a2b3c4d",
+              "Name": "Database Schema Design",
+              "StartDate": "2025-04-12T00:00:00+00:00",
+              "Duration": "4.00:00:00",
+              "PercentComplete": 10,
+              "DependsOnIds": [ "f4a5b678-5c23-9e42-a6ab-8d9e0f1a2b3c" ]
+            }
+          ]
+        },
+        {
+          "Id": "b6c7d89a-7e45-1a64-c8cd-0f1a2b3c4d5e",
+          "Name": "Risk Mitigation Plan",
+          "StartDate": "2025-04-10T00:00:00+00:00",
+          "Duration": "5.00:00:00",
+          "PercentComplete": 0,
+          "DependsOnIds": [ "f8e9d012-9c6d-4e8c-a04b-2d3e4f5a6b7c" ]
+        },
+        {
+          "Id": "c7d8e9ab-8f56-2b75-d9de-1a2b3c4d5e6f",
+          "Name": "Resource Scheduling",
+          "StartDate": "2025-04-15T00:00:00+00:00",
+          "Duration": "4.00:00:00",
+          "PercentComplete": 0,
+          "DependsOnIds": [ "e3f4a567-4b12-8d31-f59a-7c8d9e0f1a2b", "b6c7d89a-7e45-1a64-c8cd-0f1a2b3c4d5e" ]
+        }
+      ]
+    },
+    {
+      "Id": "d8e9fabc-9a67-3c86-eaef-2b3c4d5e6f7a",
+      "Name": "Development Phase",
+      "Children": [
+        {
+          "Id": "e9f0abcd-0b78-4d97-fbfa-3c4d5e6f7a8b",
+          "Name": "Core Module Development",
+          "StartDate": "2025-04-19T00:00:00+00:00",
+          "Duration": "10.00:00:00",
+          "PercentComplete": 0,
+          "DependsOnIds": [ "c7d8e9ab-8f56-2b75-d9de-1a2b3c4d5e6f" ],
+          "Children": [
+            {
+              "Id": "f0a1bcde-1c89-5ea8-acab-4d5e6f7a8b9c",
+              "Name": "Frontend Coding",
+              "StartDate": "2025-04-19T00:00:00+00:00",
+              "Duration": "6.00:00:00",
+              "PercentComplete": 0,
+              "DependsOnIds": []
+            },
+            {
+              "Id": "a1b2cdef-2d9a-6fb9-bdbc-5e6f7a8b9c0d",
+              "Name": "Backend Integration",
+              "StartDate": "2025-04-25T00:00:00+00:00",
+              "Duration": "4.00:00:00",
+              "PercentComplete": 0,
+              "DependsOnIds": [ "f0a1bcde-1c89-5ea8-acab-4d5e6f7a8b9c" ]
+            }
+          ]
+        },
+        {
+          "Id": "b2c3defa-3e0b-7ac0-cecd-6f7a8b9c0d1e",
+          "Name": "Testing and QA",
+          "StartDate": "2025-04-29T00:00:00+00:00",
+          "Duration": "8.00:00:00",
+          "PercentComplete": 0,
+          "DependsOnIds": [ "e9f0abcd-0b78-4d97-fbfa-3c4d5e6f7a8b" ],
+          "Children": [
+            {
+              "Id": "c3d4efab-4f1c-8bd1-dfde-7a8b9c0d1e2f",
+              "Name": "Unit Testing",
+              "StartDate": "2025-04-29T00:00:00+00:00",
+              "Duration": "3.00:00:00",
+              "PercentComplete": 0,
+              "DependsOnIds": []
+            },
+            {
+              "Id": "d4e5fabc-5a2d-9ce2-eaef-8b9c0d1e2f3a",
+              "Name": "Integration Testing",
+              "StartDate": "2025-05-02T00:00:00+00:00",
+              "Duration": "5.00:00:00",
+              "PercentComplete": 0,
+              "DependsOnIds": [ "c3d4efab-4f1c-8bd1-dfde-7a8b9c0d1e2f" ]
+            }
           ]
         }
       ]
     },
     {
-      "Id": "d4e5f6a7-b8c9-0123-def0-456789012345",
-      "Name": "Development Phase",
+      "Id": "e5f6abcd-6b3e-0df3-fbfa-9c0d1e2f3a4b",
+      "Name": "Deployment Phase",
       "Children": [
         {
-          "Id": "e5f6a7b8-c9d0-1234-ef01-567890123456",
-          "Name": "Model Dev",
-          "StartDate": "2025-04-04T00:00:00+00:00",
-          "Duration": "4.00:00:00",
-          "PercentComplete": 0,
-          "DependsOnIds": [ "b1c2d3e4-f5f6-7890-abcd-ef1234567891" ]
-        },
-        {
-          "Id": "f6a7b8c9-d0e1-2345-f012-678901234567",
-          "Name": "Database Setup",
-          "StartDate": "2025-04-10T00:00:00+00:00",
+          "Id": "f6a7bcde-7c4f-1ea4-acab-0d1e2f3a4b5c",
+          "Name": "Staging Deployment",
+          "StartDate": "2025-05-07T00:00:00+00:00",
           "Duration": "3.00:00:00",
-          "PercentComplete": 50,
-          "DependsOnIds": [ "e5f6a7b8-c9d0-1234-ef01-567890123456" ]
+          "PercentComplete": 0,
+          "DependsOnIds": [ "b2c3defa-3e0b-7ac0-cecd-6f7a8b9c0d1e" ]
         },
         {
-          "Id": "f7a8b9c0-e1f2-3456-0123-789012345678",
-          "Name": "API Integration",
-          "StartDate": "2025-04-13T00:00:00+00:00",
-          "Duration": "6.00:00:00",
+          "Id": "a7b8cdef-8d50-2fb5-bdbc-1e2f3a4b5c6d",
+          "Name": "Production Rollout",
+          "StartDate": "2025-05-10T00:00:00+00:00",
+          "Duration": "5.00:00:00",
           "PercentComplete": 0,
-          "DependsOnIds": [
-            "e5f6a7b8-c9d0-1234-ef01-567890123456",
-            "f6a7b8c9-d0e1-2345-f012-678901234567"
+          "DependsOnIds": [ "f6a7bcde-7c4f-1ea4-acab-0d1e2f3a4b5c" ],
+          "Children": [
+            {
+              "Id": "b8c9defa-9e61-3ac6-cecd-2f3a4b5c6d7e",
+              "Name": "Data Migration",
+              "StartDate": "2025-05-10T00:00:00+00:00",
+              "Duration": "2.00:00:00",
+              "PercentComplete": 0,
+              "DependsOnIds": []
+            },
+            {
+              "Id": "c9d0efab-0f72-4bd7-dfde-3a4b5c6d7e8f",
+              "Name": "User Training",
+              "StartDate": "2025-05-12T00:00:00+00:00",
+              "Duration": "3.00:00:00",
+              "PercentComplete": 0,
+              "DependsOnIds": [ "b8c9defa-9e61-3ac6-cecd-2f3a4b5c6d7e" ]
+            }
           ]
+        },
+        {
+          "Id": "d0e1fabc-1a83-5ce8-eaef-4b5c6d7e8f9a",
+          "Name": "Post-Deployment Review",
+          "StartDate": "2025-05-15T00:00:00+00:00",
+          "Duration": "2.00:00:00",
+          "PercentComplete": 0,
+          "DependsOnIds": [ "a7b8cdef-8d50-2fb5-bdbc-1e2f3a4b5c6d" ]
         }
       ]
     }
   ],
   "Narrative": {
-    "Situation": "The team identified a need to develop a new project management tool to streamline workflows and improve collaboration across departments.",
-    "CurrentState": "The project is in the development phase, with planning and some development tasks underway.",
-    "Plan": "The team plans to complete development, testing, and deployment by April 2025.",
-    "Results": "Results will be evaluated post-launch, focusing on user adoption and productivity."
+    "Situation": "The organization requires a comprehensive upgrade to its enterprise software to improve performance, security, and scalability across multiple departments.",
+    "CurrentState": "The project is in the planning stages, with stakeholder engagement and initial technical designs underway.",
+    "Plan": "The team aims to complete development by April 2025, followed by testing and a phased deployment concluding by mid-May 2025.",
+    "Results": "Success will be measured by system uptime, user satisfaction scores, and a 20% reduction in operational inefficiencies post-launch."
   }
 }
