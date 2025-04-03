@@ -72,6 +72,9 @@
 						<Grid>
 							<Canvas Name="PART_DateLinesCanvas" Background="{DynamicResource GanttCanvasBackgroundBrush}"/>
 							<Canvas Name="PART_GanttCanvas"/>
+							<!-- Task bars -->
+							<Canvas Name="PART_DependencyCanvas"/>
+							<!-- Dependency lines on top -->
 						</Grid>
 					</ScrollViewer>
 				</Grid>

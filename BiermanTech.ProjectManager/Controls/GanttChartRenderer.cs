@@ -5,6 +5,7 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Media;
 using BiermanTech.ProjectManager.Controls;
 using BiermanTech.ProjectManager.Models;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,6 +27,10 @@ public class GanttChartRenderer
         {
             return typedResource;
         }
+        Log.Error("Resource '{Key}' not found or is of incorrect type.", key);
+        // Fallback for visibility during debugging
+        if (typeof(T) == typeof(ISolidColorBrush)) return (T)(object)new SolidColorBrush(Colors.Red);
+        if (typeof(T) == typeof(VisualBrush)) return (T)(object)new SolidColorBrush(Colors.Blue);
         throw new InvalidOperationException($"Resource '{key}' not found or is of incorrect type.");
     }
 
@@ -143,6 +148,7 @@ public class GanttChartRenderer
 
     public void RenderTasks(Canvas ganttCanvas, List<TaskItem> tasks, TaskItem selectedTask, GanttChartLayout layout, Action<TaskItem> onTaskSelected)
     {
+        Log.Information("Starting RenderTasks with {TaskCount} tasks", tasks.Count);
         ganttCanvas.Children.Clear();
         int rowIndex = 0;
         foreach (var task in tasks)
@@ -152,9 +158,14 @@ public class GanttChartRenderer
             double y = rowIndex * layout.RowHeight;
             double taskHeight = Math.Min(Math.Max(layout.RowHeight - GanttChartConfig.TaskHeightPadding, 1), GanttChartConfig.TaskBarHeight);
             double centerY = y + (layout.RowHeight / 2);
+            double width = task.CalculatedDuration.TotalDays * layout.PixelsPerDay;
+
+            Log.Information("Task: {Name}, X: {X}, Width: {Width}, Y: {Y}, Height: {Height}",
+                task.Name, x, width, y, taskHeight);
 
             if (task.CalculatedDuration.TotalDays == 0)
             {
+                Log.Information("Rendering diamond for {Name}", task.Name);
                 double diamondWidth = layout.PixelsPerDay;
                 double halfWidth = diamondWidth / 2;
                 double halfHeight = taskHeight / 2;
@@ -162,18 +173,17 @@ public class GanttChartRenderer
                 var diamond = new Polygon
                 {
                     Points = new AvaloniaList<Point>
-                    {
-                        new Point(x + halfWidth, centerY - halfHeight),
-                        new Point(x + diamondWidth, centerY),
-                        new Point(x + halfWidth, centerY + halfHeight),
-                        new Point(x, centerY)
-                    },
+                {
+                    new Point(x + halfWidth, centerY - halfHeight),
+                    new Point(x + diamondWidth, centerY),
+                    new Point(x + halfWidth, centerY + halfHeight),
+                    new Point(x, centerY)
+                },
                     Fill = Brushes.Black,
                     Stroke = GetResource<ISolidColorBrush>("TaskBorderBrush"),
                     StrokeThickness = GetResource<double>("TaskBorderThickness"),
                     Tag = task
                 };
-
                 diamond.PointerPressed += (s, e) =>
                 {
                     if (s is Polygon p && p.Tag is TaskItem clickedTask)
@@ -181,13 +191,12 @@ public class GanttChartRenderer
                         onTaskSelected(clickedTask);
                     }
                 };
-
                 ganttCanvas.Children.Add(diamond);
+                Log.Information("Added diamond for {Name}", task.Name);
             }
             else
             {
-                double width = task.CalculatedDuration.TotalDays * layout.PixelsPerDay;
-
+                Log.Information("Rendering rectangle for {Name}", task.Name);
                 var rect = new Rectangle
                 {
                     Width = Math.Max(width, 1),
@@ -199,7 +208,6 @@ public class GanttChartRenderer
                     [Canvas.TopProperty] = y + (layout.RowHeight - taskHeight) / 2,
                     Tag = task
                 };
-
                 rect.PointerPressed += (s, e) =>
                 {
                     if (s is Rectangle r && r.Tag is TaskItem clickedTask)
@@ -207,8 +215,8 @@ public class GanttChartRenderer
                         onTaskSelected(clickedTask);
                     }
                 };
-
                 ganttCanvas.Children.Add(rect);
+                Log.Information("Added rectangle for {Name} at X={X}, Y={Y}", task.Name, x, y);
 
                 if (task.PercentComplete > 0 && task.PercentComplete < 100)
                 {
@@ -222,11 +230,12 @@ public class GanttChartRenderer
                         [Canvas.TopProperty] = y + (layout.RowHeight - taskHeight) / 2
                     };
                     ganttCanvas.Children.Add(progressRect);
+                    Log.Information("Added progress rectangle for {Name}, Width={Width}", task.Name, progressWidth);
                 }
             }
-
             rowIndex++;
         }
+        Log.Information("Finished RenderTasks, Children count: {Count}", ganttCanvas.Children.Count);
     }
 
     public void RenderTodayLine(Canvas ganttCanvas, DateTimeOffset today, GanttChartLayout layout)
@@ -246,9 +255,10 @@ public class GanttChartRenderer
         }
     }
 
-    public void RenderDependencies(Canvas ganttCanvas, List<TaskItem> tasks, GanttChartLayout layout)
+    public void RenderDependencies(Canvas dependencyCanvas, List<TaskItem> tasks, GanttChartLayout layout)
     {
-        ganttCanvas.Children.Clear(); // Clear previous dependencies
+        Log.Information("Starting RenderDependencies with {TaskCount} tasks", tasks.Count);
+        dependencyCanvas.Children.Clear(); // Clear only dependency canvas
         int rowIndex = 0;
         foreach (var task in tasks)
         {
@@ -268,14 +278,15 @@ public class GanttChartRenderer
                                 var arrow = new Polygon
                                 {
                                     Points = new AvaloniaList<Point>
-                                    {
-                                        start,
-                                        new Point(end.X, end.Y),
-                                        new Point(end.X, start.Y + (end.Y - start.Y) / 2)
-                                    },
+                                {
+                                    start,
+                                    new Point(end.X, end.Y),
+                                    new Point(end.X, start.Y + (end.Y - start.Y) / 2)
+                                },
                                     Fill = GetResource<ISolidColorBrush>("DependencyLineBrush")
                                 };
-                                ganttCanvas.Children.Add(arrow);
+                                dependencyCanvas.Children.Add(arrow);
+                                Log.Information("Added dependency arrow from {DepName} to {TaskName}", dependsOn.Name, task.Name);
                             }
                             else
                             {
@@ -286,7 +297,8 @@ public class GanttChartRenderer
                                     Stroke = GetResource<ISolidColorBrush>("DependencyLineBrush"),
                                     StrokeThickness = GetResource<double>("DependencyLineThickness")
                                 };
-                                ganttCanvas.Children.Add(line);
+                                dependencyCanvas.Children.Add(line);
+                                Log.Information("Added dependency line from {DepName} to {TaskName}", dependsOn.Name, task.Name);
                             }
                         }
                     }
@@ -294,6 +306,7 @@ public class GanttChartRenderer
             }
             rowIndex++;
         }
+        Log.Information("Finished RenderDependencies, Children count: {Count}", dependencyCanvas.Children.Count);
     }
 
     public void RenderDateLines(Canvas dateLinesCanvas, GanttChartLayout layout)

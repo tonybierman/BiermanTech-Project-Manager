@@ -3,6 +3,8 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Serilog;
+using System.Text.Json;
 
 namespace BiermanTech.ProjectManager.Services;
 
@@ -19,29 +21,30 @@ public class TaskDataSeeder
 
     public async Task<Project> SeedSampleDataAsync()
     {
-        // Load the project from the JSON file
-        var project = await _taskFileService.LoadProjectAsync();
-
-        // If no tasks were loaded (e.g., file doesn't exist), log a warning and return
+        Log.Information("Starting SeedSampleDataAsync");
+        Project project;
+        try
+        {
+            project = await _taskFileService.LoadProjectAsync();
+        }
+        catch (JsonException ex)
+        {
+            Log.Error(ex, "Failed to deserialize default_tasks.json. Using empty project.");
+            project = new Project { Name = "Default Project", Author = "Unknown" };
+        }
+        Log.Information("Loaded project: {Name}, Task count: {Count}", project.Name, project.Tasks?.Count ?? 0);
         if (project.Tasks == null || project.Tasks.Count == 0)
         {
+            Log.Warning("No tasks loaded from file");
             return project;
         }
-
-        // Add all tasks (including children) to the repository
-        void AddTasksToRepository(IEnumerable<TaskItem> tasks)
+        // Only add top-level tasks
+        foreach (var task in project.Tasks)
         {
-            foreach (var task in tasks)
-            {
-                _taskRepository.AddTask(task);
-                if (task.Children.Any())
-                {
-                    AddTasksToRepository(task.Children);
-                }
-            }
+            _taskRepository.AddTask(task); // Children stay nested
+            Log.Information("Added top-level task: {TaskName}", task.Name);
         }
-        AddTasksToRepository(project.Tasks);
-
+        Log.Information("Seeding complete");
         return project;
     }
 }

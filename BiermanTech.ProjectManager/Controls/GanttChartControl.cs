@@ -34,6 +34,7 @@ public class GanttChartControl : TemplatedControl
     private readonly GanttChartViewModel _viewModel;
     private GanttChartRenderer _renderer;
     private Canvas _ganttCanvas;
+    private Canvas _dependencyCanvas; // New canvas for dependencies
     private Canvas _headerCanvas;
     private Canvas _dateLinesCanvas;
     private ItemsControl _taskList;
@@ -86,7 +87,6 @@ public class GanttChartControl : TemplatedControl
             {
                 if (_taskList != null)
                 {
-                    // Flatten tasks for display
                     _taskList.ItemsSource = FlattenTasks(tasks);
                     Log.Information("GanttChartControl task list updated, task count: {TaskCount}", FlattenTasks(tasks)?.Count() ?? 0);
                 }
@@ -97,6 +97,7 @@ public class GanttChartControl : TemplatedControl
     {
         base.OnApplyTemplate(e);
         _ganttCanvas = e.NameScope.Find<Canvas>("PART_GanttCanvas");
+        _dependencyCanvas = e.NameScope.Find<Canvas>("PART_DependencyCanvas");
         _headerCanvas = e.NameScope.Find<Canvas>("PART_HeaderCanvas");
         _dateLinesCanvas = e.NameScope.Find<Canvas>("PART_DateLinesCanvas");
         _taskList = e.NameScope.Find<ItemsControl>("PART_TaskList");
@@ -123,6 +124,7 @@ public class GanttChartControl : TemplatedControl
     {
         return _renderer != null &&
                _ganttCanvas != null &&
+               _dependencyCanvas != null &&
                _headerCanvas != null &&
                _dateLinesCanvas != null &&
                _taskList != null &&
@@ -134,9 +136,20 @@ public class GanttChartControl : TemplatedControl
 
     private void UpdateGanttChart()
     {
-        if (!IsValidForRendering()) return;
+        if (!IsValidForRendering())
+        {
+            Log.Information("Gantt chart not valid for rendering: Tasks={TaskCount}, Bounds={Width}x{Height}",
+                _viewModel.Tasks?.Count ?? 0, Bounds.Width, Bounds.Height);
+            return;
+        }
 
         var flatTasks = FlattenTasks(_viewModel.Tasks).ToList();
+        Log.Information("Rendering Gantt chart with {TaskCount} tasks", flatTasks.Count);
+        foreach (var task in flatTasks)
+        {
+            Log.Information("Task: {Name}, Start: {Start}, Duration: {Duration}, IsParent: {IsParent}",
+                task.Name, task.CalculatedStartDate, task.CalculatedDuration, task.IsParent);
+        }
         var layout = new GanttChartLayout(flatTasks, Bounds.Width, Bounds.Height);
 
         Dispatcher.UIThread.Post(() =>
@@ -157,14 +170,19 @@ public class GanttChartControl : TemplatedControl
             _renderer.RenderHeader(_headerCanvas, flatTasks, layout);
             _renderer.RenderTasks(_ganttCanvas, flatTasks, _viewModel.SelectedTask, layout, task => SelectedTask = task);
             _renderer.RenderTodayLine(_ganttCanvas, new DateTimeOffset(2025, 4, 1, 0, 0, 0, TimeSpan.Zero), layout);
-            _renderer.RenderDependencies(_ganttCanvas, flatTasks, layout);
+            _renderer.RenderDependencies(_dependencyCanvas, flatTasks, layout);
 
             _headerCanvas.Width = layout.TotalDays * layout.PixelsPerDay;
             _headerCanvas.Height = layout.HeaderHeight;
             _ganttCanvas.Width = layout.TotalDays * layout.PixelsPerDay;
             _ganttCanvas.Height = flatTasks.Count * layout.RowHeight;
+            _dependencyCanvas.Width = layout.TotalDays * layout.PixelsPerDay;
+            _dependencyCanvas.Height = flatTasks.Count * layout.RowHeight;
             _dateLinesCanvas.Width = layout.TotalDays * layout.PixelsPerDay;
             _dateLinesCanvas.Height = flatTasks.Count * layout.RowHeight;
+
+            Log.Information("GanttCanvas size: {Width}x{Height}", _ganttCanvas.Width, _ganttCanvas.Height);
+            Log.Information("DependencyCanvas size: {Width}x{Height}", _dependencyCanvas.Width, _dependencyCanvas.Height);
         });
     }
 
