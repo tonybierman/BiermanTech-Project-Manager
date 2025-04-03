@@ -27,9 +27,27 @@ public class GanttChartRenderer
         throw new InvalidOperationException($"Resource '{key}' not found or is of incorrect type.");
     }
 
+    private DateTimeOffset NormalizeToMidnight(DateTimeOffset date)
+    {
+        return new DateTimeOffset(date.Date, date.Offset);
+    }
+
+    private int GetDayOffset(DateTimeOffset date, DateTimeOffset minDate)
+    {
+        DateTimeOffset normalizedDate = NormalizeToMidnight(date);
+        DateTimeOffset normalizedMinDate = NormalizeToMidnight(minDate);
+        return (int)(normalizedDate - normalizedMinDate).TotalDays;
+    }
+
+    private double CalculateXForDayOffset(int dayOffset, double pixelsPerDay)
+    {
+        return dayOffset * pixelsPerDay;
+    }
+
     public (double X, double Width, double Y) CalculateTaskPosition(TaskItem task, DateTimeOffset minDate, double pixelsPerDay, double rowHeight, int rowIndex)
     {
-        double x = (task.StartDate - minDate).TotalDays * pixelsPerDay;
+        int dayOffset = GetDayOffset(task.StartDate, minDate);
+        double x = CalculateXForDayOffset(dayOffset, pixelsPerDay);
         double width = task.Duration.TotalDays * pixelsPerDay;
         double y = rowIndex * rowHeight;
         return (x, width, y);
@@ -37,17 +55,20 @@ public class GanttChartRenderer
 
     public (double X, double TodayX) CalculateTodayLine(DateTimeOffset today, DateTimeOffset minDate, DateTimeOffset maxDate, double pixelsPerDay)
     {
-        double todayX = (today - minDate).TotalDays * pixelsPerDay;
-        bool isVisible = today >= minDate && today <= maxDate;
+        int dayOffset = GetDayOffset(today, minDate);
+        double todayX = CalculateXForDayOffset(dayOffset, pixelsPerDay);
+        bool isVisible = NormalizeToMidnight(today) >= NormalizeToMidnight(minDate) && NormalizeToMidnight(today) <= NormalizeToMidnight(maxDate);
         return (isVisible ? todayX : -1, todayX);
     }
 
     public List<(Point Start, Point End, bool IsArrow)> CalculateDependencyLines(TaskItem task, TaskItem dependsOn, DateTimeOffset minDate, double pixelsPerDay, double rowHeight, int taskIndex, int depIndex)
     {
         var lines = new List<(Point Start, Point End, bool IsArrow)>();
-        double depEndX = (dependsOn.EndDate - minDate).TotalDays * pixelsPerDay;
+        int depDayOffset = GetDayOffset(dependsOn.EndDate, minDate);
+        double depEndX = CalculateXForDayOffset(depDayOffset, pixelsPerDay);
         double depY = depIndex * rowHeight + (rowHeight / 2);
-        double startX = (task.StartDate - minDate).TotalDays * pixelsPerDay;
+        int startDayOffset = GetDayOffset(task.StartDate, minDate);
+        double startX = CalculateXForDayOffset(startDayOffset, pixelsPerDay);
         double startY = taskIndex * rowHeight + (rowHeight / 2);
 
         lines.Add((new Point(depEndX, depY), new Point(depEndX + 10, depY), false));
@@ -66,21 +87,22 @@ public class GanttChartRenderer
         double dayTextTop = monthRowHeight;
         string lastMonthDisplayed = null;
 
-        for (int day = 0; day <= layout.TotalDays; day++)
+        DateTimeOffset normalizedMinDate = NormalizeToMidnight(layout.MinDate);
+        for (int dayOffset = 0; dayOffset <= layout.TotalDays; dayOffset++)
         {
-            DateTimeOffset date = layout.MinDate.AddDays(day);
-            double x = day * layout.PixelsPerDay;
+            DateTimeOffset date = normalizedMinDate.AddDays(dayOffset);
+            double x = CalculateXForDayOffset(dayOffset, layout.PixelsPerDay);
 
             var line = new Line
             {
                 StartPoint = new Point(x, 0),
                 EndPoint = new Point(x, layout.HeaderHeight),
-                Stroke = GetResource<ISolidColorBrush>("DependencyLineBrush"), // Reusing DependencyLineBrush for consistency
+                Stroke = GetResource<ISolidColorBrush>("DependencyLineBrush"),
                 StrokeThickness = GetResource<double>("HeaderLineThickness")
             };
             headerCanvas.Children.Add(line);
 
-            if (date.Day == 1 || day == 0)
+            if (date.Day == 1 || dayOffset == 0)
             {
                 string monthName = date.ToString("MMMM");
                 if (monthName != lastMonthDisplayed)
@@ -117,9 +139,11 @@ public class GanttChartRenderer
         int rowIndex = 0;
         foreach (var task in tasks)
         {
-            var (x, width, y) = CalculateTaskPosition(task, layout.MinDate, layout.PixelsPerDay, layout.RowHeight, rowIndex);
+            int dayOffset = GetDayOffset(task.StartDate, layout.MinDate);
+            double x = CalculateXForDayOffset(dayOffset, layout.PixelsPerDay);
+            double width = task.Duration.TotalDays * layout.PixelsPerDay;
+            double y = rowIndex * layout.RowHeight;
 
-            // Render the full task bar (background)
             var rect = new Rectangle
             {
                 Width = Math.Max(width, 1),
@@ -127,8 +151,6 @@ public class GanttChartRenderer
                 Fill = task == selectedTask ? GetResource<ISolidColorBrush>("TaskSelectedBrush") : GetResource<VisualBrush>("TaskDefaultBrush"),
                 Stroke = GetResource<ISolidColorBrush>("TaskBorderBrush"),
                 StrokeThickness = GetResource<double>("TaskBorderThickness"),
-                // Uncomment the following line if you want a dashed border
-                //StrokeDashArray = GetResource<AvaloniaList<double>>("TaskBorderDashArray"),
                 [Canvas.LeftProperty] = x,
                 [Canvas.TopProperty] = y + 5,
                 Tag = task
@@ -144,7 +166,6 @@ public class GanttChartRenderer
 
             ganttCanvas.Children.Add(rect);
 
-            // Render the progress bar if PercentComplete is between 0 and 100
             if (task.PercentComplete > 0 && task.PercentComplete < 100)
             {
                 double progressWidth = (task.PercentComplete / 100) * width;
@@ -153,7 +174,6 @@ public class GanttChartRenderer
                     Width = Math.Max(progressWidth, 1),
                     Height = Math.Max(layout.RowHeight - 10, 1),
                     Fill = GetResource<ISolidColorBrush>("TaskProgressBrush"),
-                    // No border on the progress bar to make it appear as part of the task bar
                     [Canvas.LeftProperty] = x,
                     [Canvas.TopProperty] = y + 5
                 };

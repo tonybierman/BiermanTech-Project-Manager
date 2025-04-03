@@ -1,0 +1,44 @@
+{
+  "name": "New Project",
+  "author": "Unknown",
+  "Tasks": [
+    {
+      "id": "e7d0bc14-64e7-4378-b711-7fdbe2e0bba4",
+      "name": "Test 1",
+      "startDate": "2025-04-02T19:16:20.220372-05:00",
+      "duration": "1.00:00:00",
+      "percentComplete": 0,
+      "dependsOnId": null
+    },
+    {
+      "id": "354e3c24-33f8-4bb4-a606-adbc161cd977",
+      "name": "Test 2",
+      "startDate": "2025-04-03T00:00:00-05:00",
+      "duration": "1.00:00:00",
+      "percentComplete": 0,
+      "dependsOnId": null
+    },
+    {
+      "id": "ef12acc7-98d2-4908-8962-1dd0aa931a9e",
+      "name": "Test 3",
+      "startDate": "2025-04-04T00:00:00-05:00",
+      "duration": "1.00:00:00",
+      "percentComplete": 0,
+      "dependsOnId": null
+    },
+    {
+      "id": "5fee7c21-92ac-4dee-8b92-8273acc61cc5",
+      "name": "Tes 4",
+      "startDate": "2025-04-05T00:00:00-05:00",
+      "duration": "1.00:00:00",
+      "percentComplete": 0,
+      "dependsOnId": null
+    }
+  ],
+  "Narrative": {
+    "situation": "The team identified a need to develop a new project management tool to streamline workflows and improve collaboration across departments.",
+    "currentState": "The project is in the development phase, with several tasks completed, including planning and database setup, which is 50% complete.",
+    "plan": "The team plans to complete the remaining development tasks, conduct thorough testing, and deploy the tool by the end of April 2025.",
+    "results": "Results will be evaluated post-launch, focusing on user adoption rates and productivity improvements."
+  }
+}
