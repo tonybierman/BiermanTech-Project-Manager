@@ -72,9 +72,21 @@ public class GanttChartRenderer
         double startX = CalculateXForDayOffset(startDayOffset, pixelsPerDay);
         double startY = taskIndex * rowHeight + (rowHeight / 2);
 
-        lines.Add((new Point(depEndX, depY), new Point(depEndX + GanttChartConfig.DependencyLineOffset, depY), false));
-        lines.Add((new Point(depEndX + GanttChartConfig.DependencyLineOffset, depY), new Point(depEndX + GanttChartConfig.DependencyLineOffset, startY), false));
-        lines.Add((new Point(depEndX + GanttChartConfig.DependencyLineOffset, startY), new Point(startX, startY), false));
+        // Center the vertical portion within the day
+        double halfDayWidth = pixelsPerDay / 2;
+        double depVerticalX = depEndX + halfDayWidth; // Center in the day after depEndX
+        double startVerticalX = startX + halfDayWidth; // Center in the day of startX
+
+        // Line from dependency end to the centered vertical segment
+        lines.Add((new Point(depEndX, depY), new Point(depVerticalX, depY), false));
+
+        // Vertical segment, centered in the day
+        lines.Add((new Point(depVerticalX, depY), new Point(depVerticalX, startY), false));
+
+        // Line from vertical segment to task start (with centering adjustment)
+        lines.Add((new Point(depVerticalX, startY), new Point(startX, startY), false));
+
+        // Arrowhead at the task start
         lines.Add((new Point(startX, startY), new Point(startX - GanttChartConfig.ArrowSize, startY - GanttChartConfig.ArrowSize), true));
         lines.Add((new Point(startX, startY), new Point(startX - GanttChartConfig.ArrowSize, startY + GanttChartConfig.ArrowSize), true));
 
@@ -146,44 +158,82 @@ public class GanttChartRenderer
         {
             int dayOffset = GetDayOffset(task.StartDate, layout.MinDate);
             double x = CalculateXForDayOffset(dayOffset, layout.PixelsPerDay);
-            double width = task.Duration.TotalDays * layout.PixelsPerDay;
             double y = rowIndex * layout.RowHeight;
             double taskHeight = Math.Min(Math.Max(layout.RowHeight - GanttChartConfig.TaskHeightPadding, 1), GanttChartConfig.TaskBarHeight);
+            double centerY = y + (layout.RowHeight / 2); // Center vertically in the row
 
-            var rect = new Rectangle
+            if (task.Duration.TotalDays == 0)
             {
-                Width = Math.Max(width, 1),
-                Height = taskHeight,
-                Fill = task == selectedTask ? GetResource<ISolidColorBrush>("TaskSelectedBrush") : GetResource<VisualBrush>("TaskDefaultBrush"),
-                Stroke = GetResource<ISolidColorBrush>("TaskBorderBrush"),
-                StrokeThickness = GetResource<double>("TaskBorderThickness"),
-                [Canvas.LeftProperty] = x,
-                [Canvas.TopProperty] = y + (layout.RowHeight - taskHeight) / 2,
-                Tag = task
-            };
+                // Render a black diamond for tasks with 0 duration, vertically centered
+                double diamondWidth = layout.PixelsPerDay; // Width of one day
+                double halfWidth = diamondWidth / 2;
+                double halfHeight = taskHeight / 2;
 
-            rect.PointerPressed += (s, e) =>
-            {
-                if (s is Rectangle r && r.Tag is TaskItem clickedTask)
+                var diamond = new Polygon
                 {
-                    onTaskSelected(clickedTask);
-                }
-            };
-
-            ganttCanvas.Children.Add(rect);
-
-            if (task.PercentComplete > 0 && task.PercentComplete < 100)
-            {
-                double progressWidth = (task.PercentComplete / 100) * width;
-                var progressRect = new Rectangle
+                    Points = new Avalonia.Collections.AvaloniaList<Point>
                 {
-                    Width = Math.Max(progressWidth, 1),
-                    Height = taskHeight,
-                    Fill = GetResource<ISolidColorBrush>("TaskProgressBrush"),
-                    [Canvas.LeftProperty] = x,
-                    [Canvas.TopProperty] = y + (layout.RowHeight - taskHeight) / 2
+                    new Point(x + halfWidth, centerY - halfHeight), // Top point
+                    new Point(x + diamondWidth, centerY),           // Right point
+                    new Point(x + halfWidth, centerY + halfHeight), // Bottom point
+                    new Point(x, centerY)                           // Left point
+                },
+                    Fill = Brushes.Black, // Black fill
+                    Stroke = GetResource<ISolidColorBrush>("TaskBorderBrush"),
+                    StrokeThickness = GetResource<double>("TaskBorderThickness"),
+                    Tag = task
                 };
-                ganttCanvas.Children.Add(progressRect);
+
+                diamond.PointerPressed += (s, e) =>
+                {
+                    if (s is Polygon p && p.Tag is TaskItem clickedTask)
+                    {
+                        onTaskSelected(clickedTask);
+                    }
+                };
+
+                ganttCanvas.Children.Add(diamond);
+            }
+            else
+            {
+                // Existing rectangle rendering for tasks with duration > 0
+                double width = task.Duration.TotalDays * layout.PixelsPerDay;
+
+                var rect = new Rectangle
+                {
+                    Width = Math.Max(width, 1),
+                    Height = taskHeight,
+                    Fill = task == selectedTask ? GetResource<ISolidColorBrush>("TaskSelectedBrush") : GetResource<VisualBrush>("TaskDefaultBrush"),
+                    Stroke = GetResource<ISolidColorBrush>("TaskBorderBrush"),
+                    StrokeThickness = GetResource<double>("TaskBorderThickness"),
+                    [Canvas.LeftProperty] = x,
+                    [Canvas.TopProperty] = y + (layout.RowHeight - taskHeight) / 2,
+                    Tag = task
+                };
+
+                rect.PointerPressed += (s, e) =>
+                {
+                    if (s is Rectangle r && r.Tag is TaskItem clickedTask)
+                    {
+                        onTaskSelected(clickedTask);
+                    }
+                };
+
+                ganttCanvas.Children.Add(rect);
+
+                if (task.PercentComplete > 0 && task.PercentComplete < 100)
+                {
+                    double progressWidth = (task.PercentComplete / 100) * width;
+                    var progressRect = new Rectangle
+                    {
+                        Width = Math.Max(progressWidth, 1),
+                        Height = taskHeight,
+                        Fill = GetResource<ISolidColorBrush>("TaskProgressBrush"),
+                        [Canvas.LeftProperty] = x,
+                        [Canvas.TopProperty] = y + (layout.RowHeight - taskHeight) / 2
+                    };
+                    ganttCanvas.Children.Add(progressRect);
+                }
             }
 
             rowIndex++;
