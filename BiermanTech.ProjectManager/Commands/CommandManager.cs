@@ -466,6 +466,11 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
         {
             // Load the first project using LoadProjectCommand
             var command = _commandFactory.CreateLoadProjectCommand(1);
+            // Skip ClearTasks if the task list is already empty (initial load)
+            if (_taskRepository.GetTasks().Any())
+            {
+                _taskRepository.ClearTasks();
+            }
             ExecuteCommand(command);
             Project = (command as LoadProjectCommand)?.LoadedProject;
             Tasks = new List<TaskItem>(_taskRepository.GetTasks());
@@ -477,6 +482,24 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
             throw;
         }
     }
+
+    //public async Task Initialize()
+    //{
+    //    try
+    //    {
+    //        // Load the first project using LoadProjectCommand
+    //        var command = _commandFactory.CreateLoadProjectCommand(1);
+    //        ExecuteCommand(command);
+    //        Project = (command as LoadProjectCommand)?.LoadedProject;
+    //        Tasks = new List<TaskItem>(_taskRepository.GetTasks());
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        Log.Error(ex, "Error in Initialize");
+    //        ShowNotification("Error initializing Command Manager.");
+    //        throw;
+    //    }
+    //}
 
     public void ExecuteCommand(ICommand command)
     {
