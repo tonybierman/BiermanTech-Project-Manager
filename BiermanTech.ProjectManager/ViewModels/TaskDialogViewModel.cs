@@ -14,7 +14,7 @@ public class TaskDialogViewModel : ViewModelBase
     private DateTimeOffset? _startDate;
     private double _durationDays;
     private double _percentComplete;
-    private List<TaskItem> _dependsOnList; // Changed to List<TaskItem>
+    private List<TaskItem> _dependsOnList; // Already List<TaskItem>
     private readonly List<TaskItem> _tasks;
     private readonly TaskItem _task;
     private string _errorMessage;
@@ -47,7 +47,7 @@ public class TaskDialogViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _percentComplete, value);
     }
 
-    public List<TaskItem> DependsOnList // Changed to List<TaskItem>
+    public List<TaskItem> DependsOnList
     {
         get => _dependsOnList;
         set
@@ -103,12 +103,12 @@ public class TaskDialogViewModel : ViewModelBase
             {
                 _result = new TaskItem
                 {
-                    Id = _task?.Id ?? Guid.NewGuid(),
+                    Id = _task?.Id ?? 0, // Changed from Guid.NewGuid() to 0 for new tasks
                     Name = TaskName,
                     StartDate = StartDate.Value,
                     Duration = TimeSpan.FromDays(DurationDays),
                     PercentComplete = PercentComplete,
-                    DependsOnIds = DependsOnList.Select(t => t.Id).ToList(), // Set DependsOnIds
+                    DependsOnIds = DependsOnList.Select(t => t.Id).ToList(), // Already int, no change needed
                     DependsOn = new List<TaskItem>(DependsOnList) // Set DependsOn for runtime
                 };
                 return _result;

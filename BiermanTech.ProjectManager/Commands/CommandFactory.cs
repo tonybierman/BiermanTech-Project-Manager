@@ -16,7 +16,7 @@ public class CommandFactory : ICommandFactory
         _taskFileService = taskFileService;
     }
 
-    public ICommand CreateAddTaskCommand(TaskItem task, Guid? parentTaskId = null)
+    public ICommand CreateAddTaskCommand(TaskItem task, int? parentTaskId = null) // Changed from Guid? to int?
     {
         return new AddTaskCommand(task, _taskRepository, parentTaskId);
     }

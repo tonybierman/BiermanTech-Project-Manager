@@ -85,7 +85,7 @@ public class NewProjectCommand : ICommand
                 StartDate = task.StartDate,
                 Duration = task.Duration,
                 PercentComplete = task.PercentComplete,
-                DependsOnIds = new List<Guid>(task.DependsOnIds),
+                DependsOnIds = new List<int>(task.DependsOnIds), // Changed from List<Guid> to List<int>
                 DependsOn = new List<TaskItem>(), // Will be resolved later if needed
                 Children = DeepCopyTaskList(task.Children)
             };

@@ -445,7 +445,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         _notificationTimer.Start();
     }
 
-    private TaskItem FindTaskById(IEnumerable<TaskItem> tasks, Guid id)
+    private TaskItem FindTaskById(IEnumerable<TaskItem> tasks, int id)
     {
         foreach (var task in tasks)
         {
@@ -478,7 +478,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
             StartDate = task.StartDate,
             Duration = task.Duration,
             PercentComplete = task.PercentComplete,
-            DependsOnIds = new List<Guid>(task.DependsOnIds),
+            DependsOnIds = new List<int>(task.DependsOnIds),
             DependsOn = new List<TaskItem>(task.DependsOn),
             Children = task.Children.Select(DeepCopyTask).ToList()
         };

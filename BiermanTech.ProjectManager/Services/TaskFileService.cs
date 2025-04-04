@@ -42,7 +42,7 @@ public class TaskFileService
             }
 
             // Build a dictionary of all tasks (including children) for dependency resolution
-            var taskDictionary = new Dictionary<Guid, TaskItem>();
+            var taskDictionary = new Dictionary<int, TaskItem>(); // Changed from Guid to int
             void AddTasksToDictionary(IEnumerable<TaskItem> tasks)
             {
                 foreach (var task in tasks)

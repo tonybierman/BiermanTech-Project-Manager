@@ -97,7 +97,7 @@ public class GanttChartViewModel : ReactiveObject
         _tasksSubscription?.Dispose();
     }
 
-    private TaskItem FindTaskById(IEnumerable<TaskItem> tasks, Guid id)
+    private TaskItem FindTaskById(IEnumerable<TaskItem> tasks, int id) // Changed from Guid to int
     {
         foreach (var task in tasks)
         {

@@ -1,14 +1,16 @@
 ﻿using BiermanTech.ProjectManager.Models;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 
-namespace BiermanTech.ProjectManager.Services;
-
-public interface ITaskRepository
+namespace BiermanTech.ProjectManager.Services
 {
-    event EventHandler TasksChanged;
-    List<TaskItem> GetTasks();
-    void AddTask(TaskItem task, Guid? parentTaskId = null); // Updated signature
-    void RemoveTask(TaskItem task);
-    void NotifyTasksChanged();
+    public interface ITaskRepository
+    {
+        event EventHandler TasksChanged;
+
+        void AddTask(TaskItem task, int? parentTaskId = null);
+        List<TaskItem> GetTasks();
+        void NotifyTasksChanged();
+        void RemoveTask(TaskItem task);
+    }
 }

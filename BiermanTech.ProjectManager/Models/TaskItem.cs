@@ -7,7 +7,7 @@ namespace BiermanTech.ProjectManager.Models;
 
 public class TaskItem
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public int Id { get; set; } // Changed from Guid to int
     public string Name { get; set; }
 
     // For leaf tasks: manually set; for parent tasks: calculated
@@ -59,7 +59,7 @@ public class TaskItem
     public List<TaskItem> Children { get; set; } = new List<TaskItem>();
 
     // Multiple dependencies
-    public List<Guid> DependsOnIds { get; set; } = new List<Guid>();
+    public List<int> DependsOnIds { get; set; } = new List<int>(); // Changed from List<Guid> to List<int>
 
     [JsonIgnore]
     public List<TaskItem> DependsOn { get; set; } = new List<TaskItem>();

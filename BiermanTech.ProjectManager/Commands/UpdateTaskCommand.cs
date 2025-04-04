@@ -26,8 +26,8 @@ public class UpdateTaskCommand : ICommand
             StartDate = originalTask.StartDate,
             Duration = originalTask.Duration,
             PercentComplete = originalTask.PercentComplete,
-            DependsOnIds = new System.Collections.Generic.List<Guid>(originalTask.DependsOnIds),
-            DependsOn = new System.Collections.Generic.List<TaskItem>(originalTask.DependsOn),
+            DependsOnIds = new List<int>(originalTask.DependsOnIds), // Changed from List<Guid> to List<int>
+            DependsOn = new List<TaskItem>(originalTask.DependsOn),
             Children = originalTask.Children.ToList() // Shallow copy, assuming children don’t change here
         };
     }
@@ -42,8 +42,8 @@ public class UpdateTaskCommand : ICommand
             taskToUpdate.StartDate = _updatedTask.StartDate;
             taskToUpdate.Duration = _updatedTask.Duration;
             taskToUpdate.PercentComplete = _updatedTask.PercentComplete;
-            taskToUpdate.DependsOnIds = new System.Collections.Generic.List<Guid>(_updatedTask.DependsOnIds);
-            taskToUpdate.DependsOn = new System.Collections.Generic.List<TaskItem>(_updatedTask.DependsOn);
+            taskToUpdate.DependsOnIds = new List<int>(_updatedTask.DependsOnIds); // Changed from List<Guid> to List<int>
+            taskToUpdate.DependsOn = new List<TaskItem>(_updatedTask.DependsOn);
 
             _parentTask = FindParentTask(tasks, taskToUpdate);
             if (_parentTask != null)
@@ -67,8 +67,8 @@ public class UpdateTaskCommand : ICommand
             taskToRevert.StartDate = _previousState.StartDate;
             taskToRevert.Duration = _previousState.Duration;
             taskToRevert.PercentComplete = _previousState.PercentComplete;
-            taskToRevert.DependsOnIds = new System.Collections.Generic.List<Guid>(_previousState.DependsOnIds);
-            taskToRevert.DependsOn = new System.Collections.Generic.List<TaskItem>(_previousState.DependsOn);
+            taskToRevert.DependsOnIds = new List<int>(_previousState.DependsOnIds); // Changed from List<Guid> to List<int>
+            taskToRevert.DependsOn = new List<TaskItem>(_previousState.DependsOn);
 
             if (_parentTask != null)
             {
@@ -81,7 +81,7 @@ public class UpdateTaskCommand : ICommand
         }
     }
 
-    private TaskItem FindTaskById(IEnumerable<TaskItem> tasks, Guid id)
+    private TaskItem FindTaskById(IEnumerable<TaskItem> tasks, int id) // Changed from Guid to int
     {
         foreach (var task in tasks)
         {

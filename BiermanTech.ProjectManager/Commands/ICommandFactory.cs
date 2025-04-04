@@ -1,11 +1,10 @@
 ﻿using BiermanTech.ProjectManager.Models;
-using System;
 
 namespace BiermanTech.ProjectManager.Commands
 {
     public interface ICommandFactory
     {
-        ICommand CreateAddTaskCommand(TaskItem task, Guid? parentTaskId = null);
+        ICommand CreateAddTaskCommand(TaskItem task, int? parentTaskId = null);
         ICommand CreateDeleteTaskCommand(TaskItem task);
         ICommand CreateEditNarrativeCommand(Project project, ProjectNarrative originalNarrative, ProjectNarrative updatedNarrative);
         ICommand CreateLoadProjectCommand(Project project, string filePath);

@@ -18,7 +18,7 @@ public class InMemoryTaskRepository : ITaskRepository
 
     public List<TaskItem> GetTasks() => _tasks;
 
-    public void AddTask(TaskItem task, Guid? parentTaskId = null)
+    public void AddTask(TaskItem task, int? parentTaskId = null) // Changed from Guid? to int?
     {
         if (parentTaskId.HasValue)
         {
@@ -58,7 +58,7 @@ public class InMemoryTaskRepository : ITaskRepository
         TasksChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private TaskItem FindTaskById(IEnumerable<TaskItem> tasks, Guid id)
+    private TaskItem FindTaskById(IEnumerable<TaskItem> tasks, int id) // Changed from Guid to int
     {
         foreach (var task in tasks)
         {
