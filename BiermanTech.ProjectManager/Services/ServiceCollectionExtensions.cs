@@ -10,7 +10,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddAppServices(this IServiceCollection services)
     {
-        services.AddSingleton<ITaskRepository, InMemoryTaskRepository>();
+        //services.AddSingleton<ITaskRepository, InMemoryTaskRepository>();
         services.AddSingleton<ICommandManager, CommandManager>();
         services.AddSingleton<ICommandFactory, CommandFactory>();
         services.AddSingleton<IDialogService, DialogService>();

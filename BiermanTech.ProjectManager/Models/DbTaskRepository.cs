@@ -1,16 +1,17 @@
-﻿using BiermanTech.ProjectManager.Models;
-using BiermanTech.ProjectManager.Data;
+﻿using BiermanTech.ProjectManager.Data;
+using BiermanTech.ProjectManager.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace BiermanTech.ProjectManager.Models;
+namespace BiermanTech.ProjectManager.Services;
 
 public class DbTaskRepository : ITaskRepository
 {
     private readonly ProjectDbContext _context;
     private readonly int _projectId;
+    private readonly List<TaskItem> _tasks;
 
     public event EventHandler TasksChanged;
 
@@ -18,63 +19,95 @@ public class DbTaskRepository : ITaskRepository
     {
         _context = context;
         _projectId = projectId;
+        _tasks = new List<TaskItem>();
+        LoadTasks();
     }
 
-    public List<TaskItem> GetTasks()
+    public IEnumerable<TaskItem> GetTasks()
+    {
+        return _tasks.AsReadOnly();
+    }
+
+    public void AddTask(TaskItem task)
+    {
+        // Check if the task already exists in the database
+        if (task.Id != 0 && _context.Tasks.Any(t => t.Id == task.Id))
+        {
+            // Task already exists in the database; just add it to the in-memory list
+            if (!_tasks.Any(t => t.Id == task.Id))
+            {
+                _tasks.Add(task);
+                OnTasksChanged();
+            }
+        }
+        else
+        {
+            // New task; add to both the database and in-memory list
+            _tasks.Add(task);
+            _context.Tasks.Add(task);
+            _context.SaveChanges();
+            OnTasksChanged();
+        }
+    }
+
+    public void UpdateTask(TaskItem task)
+    {
+        var existingTask = _tasks.FirstOrDefault(t => t.Id == task.Id);
+        if (existingTask != null)
+        {
+            existingTask.Name = task.Name;
+            existingTask.StartDate = task.StartDate;
+            existingTask.Duration = task.Duration;
+            existingTask.PercentComplete = task.PercentComplete;
+            existingTask.TaskDependencies = task.TaskDependencies;
+            existingTask.DependsOn = task.DependsOn;
+            existingTask.Children = task.Children;
+
+            _context.Tasks.Update(existingTask);
+            _context.SaveChanges();
+            OnTasksChanged();
+        }
+    }
+
+    public void DeleteTask(TaskItem task)
+    {
+        var existingTask = _tasks.FirstOrDefault(t => t.Id == task.Id);
+        if (existingTask != null)
+        {
+            _tasks.Remove(existingTask);
+            _context.Tasks.Remove(existingTask);
+            _context.SaveChanges();
+            OnTasksChanged();
+        }
+    }
+
+    public void ClearTasks()
+    {
+        _tasks.Clear();
+        OnTasksChanged();
+    }
+
+    private void LoadTasks()
     {
         var tasks = _context.Tasks
-            .Where(t => t.ProjectId == _projectId)
-            .Include(t => t.Children)
             .Include(t => t.TaskDependencies)
+            .ThenInclude(td => td.DependsOnTask)
+            .Include(t => t.Children)
+            .Where(t => t.ProjectId == _projectId)
             .ToList();
 
-        // Populate DependsOn for runtime use
         foreach (var task in tasks)
         {
-            task.DependsOn = _context.Tasks
-                .Where(t => task.TaskDependencies.Select(td => td.DependsOnId).Contains(t.Id))
-                .ToList();
+            task.DependsOn = task.TaskDependencies?
+                .Select(td => td.DependsOnTask)
+                .Where(t => t != null)
+                .ToList() ?? new List<TaskItem>();
+
+            _tasks.Add(task);
         }
-
-        return tasks;
     }
 
-    public void AddTask(TaskItem task, int? parentTaskId = null)
-    {
-        task.ProjectId = _projectId;
-        if (parentTaskId.HasValue) task.ParentId = parentTaskId.Value;
-
-        _context.Tasks.Add(task);
-        _context.SaveChanges(); // Save to get task.Id
-
-        // Add dependencies from DependsOnIds (set by TaskDialogViewModel or JSON)
-        if (task.DependsOnIds != null && task.DependsOnIds.Any())
-        {
-            foreach (var depId in task.DependsOnIds)
-            {
-                if (_context.Tasks.Any(t => t.Id == depId)) // Validate existence
-                {
-                    _context.TaskDependencies.Add(new TaskDependency
-                    {
-                        TaskId = task.Id,
-                        DependsOnId = depId
-                    });
-                }
-            }
-            _context.SaveChanges();
-        }
-
-        NotifyTasksChanged();
-    }
-
-    public void RemoveTask(TaskItem task)
-    {
-        _context.Tasks.Remove(task); // Cascade will remove TaskDependencies entries
-        _context.SaveChanges();
-        NotifyTasksChanged();
-    }
-
-    public void NotifyTasksChanged()
+    private void OnTasksChanged()
     {
         TasksChanged?.Invoke(this, EventArgs.Empty);
     }

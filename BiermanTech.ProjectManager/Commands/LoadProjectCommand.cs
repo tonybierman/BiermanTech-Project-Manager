@@ -3,47 +3,53 @@ using BiermanTech.ProjectManager.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 namespace BiermanTech.ProjectManager.Commands;
 
 public class LoadProjectCommand : ICommand
 {
-    private readonly Project _project;
     private readonly ProjectDbContext _context;
     private readonly int _projectId;
+    private readonly ITaskRepository _taskRepository;
     private Project _previousProjectState;
+    private Project _loadedProject;
 
-    public LoadProjectCommand(Project project, ProjectDbContext context, int projectId)
+    public LoadProjectCommand(ProjectDbContext context, int projectId, ITaskRepository taskRepository)
     {
-        _project = project;
         _context = context;
         _projectId = projectId;
-        //_previousProjectState = DeepCopyProject(project);
+        _taskRepository = taskRepository;
     }
+
+    public Project LoadedProject => _loadedProject;
 
     public void Execute()
     {
-        var loadedProject = _context.Projects
+        _loadedProject = _context.Projects
             .Include(p => p.Tasks).ThenInclude(t => t.Children)
             .Include(p => p.Tasks).ThenInclude(t => t.TaskDependencies)
+            .ThenInclude(td => td.DependsOnTask)
             .Include(p => p.Narrative)
             .FirstOrDefault(p => p.Id == _projectId);
-        if (loadedProject != null)
-        {
-            _project.Id = loadedProject.Id;
-            _project.Name = loadedProject.Name;
-            _project.Author = loadedProject.Author;
-            _project.Tasks.Clear();
-            _project.Tasks.AddRange(loadedProject.Tasks);
-            _project.Narrative = loadedProject.Narrative;
-            _project.ProjectNarrativeId = loadedProject.ProjectNarrativeId;
 
-            // Populate DependsOn for runtime use
-            foreach (var task in _project.Tasks)
+        if (_loadedProject == null)
+        {
+            throw new InvalidOperationException($"Project with ID {_projectId} not found.");
+        }
+
+        // Update the repository with the new project's tasks
+        _taskRepository.ClearTasks();
+        if (_loadedProject.Tasks != null)
+        {
+            foreach (var task in _loadedProject.Tasks)
             {
-                task.DependsOn = _context.Tasks
-                    .Where(t => task.TaskDependencies.Select(td => td.DependsOnId).Contains(t.Id))
-                    .ToList();
+                task.DependsOn = task.TaskDependencies?
+                    .Select(td => td.DependsOnTask)
+                    .Where(t => t != null)
+                    .ToList() ?? new List<TaskItem>();
+
+                _taskRepository.AddTask(task);
             }
         }
     }
@@ -51,13 +57,8 @@ public class LoadProjectCommand : ICommand
     public void Undo()
     {
         // TODO: Implement Undo
-
-        //_project.Id = _previousProjectState.Id;
-        //_project.Name = _previousProjectState.Name;
-        //_project.Author = _previousProjectState.Author;
-        //_project.Tasks.Clear();
-        //_project.Tasks.AddRange(_previousProjectState.Tasks);
-        //_project.Narrative = _previousProjectState.Narrative;
-        //_project.ProjectNarrativeId = _previousProjectState.ProjectNarrativeId;
+        // For now, we'll just clear the tasks and project
+        _taskRepository.ClearTasks();
+        _loadedProject = null;
     }
 }

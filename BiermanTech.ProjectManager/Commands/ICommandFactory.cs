@@ -9,7 +9,7 @@ namespace BiermanTech.ProjectManager.Commands
         ICommand CreateEditNarrativeCommand(Project project, ProjectNarrative originalNarrative, ProjectNarrative updatedNarrative);
         ICommand CreateExportProjectCommand(Project project, string filePath);
         ICommand CreateImportProjectCommand(Project project, string filePath);
-        ICommand CreateLoadProjectCommand(Project project, int projectId);
+        ICommand CreateLoadProjectCommand(int projectId);
         ICommand CreateNewProjectCommand(Project project);
         ICommand CreateSaveProjectCommand(Project project);
         ICommand CreateUpdateTaskCommand(TaskItem originalTask, TaskItem updatedTask);

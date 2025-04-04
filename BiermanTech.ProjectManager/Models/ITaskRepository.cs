@@ -8,9 +8,10 @@ namespace BiermanTech.ProjectManager.Models
     {
         event EventHandler TasksChanged;
 
-        void AddTask(TaskItem task, int? parentTaskId = null);
-        List<TaskItem> GetTasks();
-        void NotifyTasksChanged();
-        void RemoveTask(TaskItem task);
+        void AddTask(TaskItem task);
+        void ClearTasks();
+        void DeleteTask(TaskItem task);
+        IEnumerable<TaskItem> GetTasks();
+        void UpdateTask(TaskItem task);
     }
 }

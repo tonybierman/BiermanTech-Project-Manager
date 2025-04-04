@@ -52,7 +52,8 @@ public class MenuBarViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> NewProjectCommand => _commandManager.NewProjectCommand;
     public ReactiveCommand<Unit, Unit> SaveProjectCommand => _commandManager.SaveProjectCommand;
     public ReactiveCommand<Unit, Unit> SaveAsProjectCommand => _commandManager.SaveAsProjectCommand;
-    public ReactiveCommand<Unit, Unit> LoadProjectCommand => _commandManager.LoadProjectCommand;
+    public ReactiveCommand<int, Unit> LoadProjectCommand => _commandManager.LoadProjectCommand;
+    public ReactiveCommand<Unit, Unit> LoadProjectFromFileCommand => _commandManager.LoadProjectFromFileCommand;
     public ReactiveCommand<Unit, Unit> EditNarrativeCommand => _commandManager.EditNarrativeCommand;
     public ReactiveCommand<Unit, Unit> SaveAsPdfCommand => _commandManager.SaveAsPdfCommand;
     public ReactiveCommand<Unit, Unit> CreateTaskCommand => _commandManager.CreateTaskCommand;

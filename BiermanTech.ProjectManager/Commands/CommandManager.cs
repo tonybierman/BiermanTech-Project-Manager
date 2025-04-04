@@ -24,7 +24,6 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
     private readonly IDialogService _dialogService;
     private readonly Services.IMessageBus _messageBus;
     private readonly ITaskRepository _taskRepository;
-    private readonly TaskDataSeeder _taskDataSeeder;
     private Window _mainWindow;
     private List<TaskItem> _tasks;
     private TaskItem _selectedTask;
@@ -142,7 +141,8 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
     public ReactiveCommand<Unit, Unit> RedoCommand { get; private set; }
     public ReactiveCommand<Unit, Unit> SaveProjectCommand { get; private set; }
     public ReactiveCommand<Unit, Unit> SaveAsProjectCommand { get; private set; }
-    public ReactiveCommand<Unit, Unit> LoadProjectCommand { get; private set; }
+    public ReactiveCommand<int, Unit> LoadProjectCommand { get; private set; }
+    public ReactiveCommand<Unit, Unit> LoadProjectFromFileCommand { get; private set; }
     public ReactiveCommand<Unit, Unit> NewProjectCommand { get; private set; }
     public ReactiveCommand<Unit, Unit> EditNarrativeCommand { get; private set; }
     public ReactiveCommand<Unit, Unit> SaveAsPdfCommand { get; private set; }
@@ -152,14 +152,12 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
         ICommandFactory commandFactory,
         IDialogService dialogService,
         Services.IMessageBus messageBus,
-        ITaskRepository taskRepository,
-        TaskDataSeeder taskDataSeeder)
+        ITaskRepository taskRepository)
     {
         _commandFactory = commandFactory;
         _dialogService = dialogService;
         _messageBus = messageBus;
         _taskRepository = taskRepository;
-        _taskDataSeeder = taskDataSeeder;
 
         _tasks = new List<TaskItem>();
         _notificationTimer = new Timer(5000);
@@ -334,7 +332,7 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
             }
         });
 
-        LoadProjectCommand = ReactiveCommand.CreateFromTask(async () =>
+        LoadProjectFromFileCommand = ReactiveCommand.CreateFromTask(async () =>
         {
             try
             {
@@ -357,8 +355,26 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error in LoadProjectCommand");
+                Log.Error(ex, "Error in LoadProjectFromFileCommand");
                 ShowNotification("Error loading project.");
+                throw;
+            }
+        });
+
+        LoadProjectCommand = ReactiveCommand.Create<int>(projectId =>
+        {
+            try
+            {
+                var command = _commandFactory.CreateLoadProjectCommand(projectId);
+                ExecuteCommand(command);
+                Project = (command as LoadProjectCommand)?.LoadedProject;
+                Tasks = new List<TaskItem>(_taskRepository.GetTasks());
+                ShowNotification($"Project with ID {projectId} loaded.");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, $"Error loading project with ID {projectId}");
+                ShowNotification($"Error loading project: {ex.Message}");
                 throw;
             }
         });
@@ -448,14 +464,16 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
     {
         try
         {
-            // Project is loaded correctly here.
-            Project = await _taskDataSeeder.SeedSampleDataAsync();
+            // Load the first project using LoadProjectCommand
+            var command = _commandFactory.CreateLoadProjectCommand(1);
+            ExecuteCommand(command);
+            Project = (command as LoadProjectCommand)?.LoadedProject;
             Tasks = new List<TaskItem>(_taskRepository.GetTasks());
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Error in Initialize");
-            ShowNotification("Error initializing Commmand Manager.");
+            ShowNotification("Error initializing Command Manager.");
             throw;
         }
     }

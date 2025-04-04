@@ -198,6 +198,5 @@ public class GanttChartControl : TemplatedControl
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
-        _viewModel.Dispose();
     }
 }

@@ -1,7 +1,7 @@
 ﻿using BiermanTech.ProjectManager.Models;
-using BiermanTech.ProjectManager.Services;
 using BiermanTech.ProjectManager.Data;
 using System;
+using BiermanTech.ProjectManager.Services;
 
 namespace BiermanTech.ProjectManager.Commands;
 
@@ -10,12 +10,14 @@ public class CommandFactory : ICommandFactory
     private readonly ProjectDbContext _context;
     private readonly int _projectId;
     private readonly TaskFileService _taskFileService;
+    private readonly ITaskRepository _taskRepository;
 
-    public CommandFactory(ProjectDbContext context, int projectId, TaskFileService taskFileService)
+    public CommandFactory(ProjectDbContext context, int projectId, TaskFileService taskFileService, ITaskRepository taskRepository)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _projectId = projectId;
         _taskFileService = taskFileService ?? throw new ArgumentNullException(nameof(taskFileService));
+        _taskRepository = taskRepository ?? throw new ArgumentNullException(nameof(taskRepository));
     }
 
     public ICommand CreateAddTaskCommand(TaskItem task, int? parentTaskId = null)
@@ -48,9 +50,9 @@ public class CommandFactory : ICommandFactory
         return new SaveProjectCommand(project, _context);
     }
 
-    public ICommand CreateLoadProjectCommand(Project project, int projectId)
+    public ICommand CreateLoadProjectCommand(int projectId)
     {
-        return new LoadProjectCommand(project, _context, projectId);
+        return new LoadProjectCommand(_context, projectId, _taskRepository);
     }
 
     public ICommand CreateNewProjectCommand(Project project)

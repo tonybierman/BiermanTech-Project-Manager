@@ -1,22 +1,17 @@
 ﻿using BiermanTech.ProjectManager.Models;
-using BiermanTech.ProjectManager.Services;
+using BiermanTech.ProjectManager.ViewModels;
 using ReactiveUI;
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reactive.Linq;
 using Serilog;
-using Avalonia.Threading;
-using Avalonia.ReactiveUI;
+using System;
 
 namespace BiermanTech.ProjectManager.Controls;
 
 public class GanttChartViewModel : ReactiveObject
 {
-    private readonly ITaskRepository _taskRepository;
     private List<TaskItem> _tasks;
     private TaskItem _selectedTask;
-    private IDisposable _tasksSubscription;
 
     public List<TaskItem> Tasks
     {
@@ -27,84 +22,30 @@ public class GanttChartViewModel : ReactiveObject
     public TaskItem SelectedTask
     {
         get => _selectedTask;
-        set
-        {
-            Dispatcher.UIThread.Post(() =>
-            {
-                this.RaiseAndSetIfChanged(ref _selectedTask, value);
-                Log.Information("GanttChartViewModel SelectedTask set to: {TaskName}", _selectedTask?.Name ?? "null");
-            });
-        }
+        set => this.RaiseAndSetIfChanged(ref _selectedTask, value);
     }
 
-    public GanttChartViewModel(ITaskRepository taskRepository)
+    public GanttChartViewModel(MainWindowViewModel mainViewModel)
     {
-        _taskRepository = taskRepository ?? throw new ArgumentNullException(nameof(taskRepository));
-        _tasks = new List<TaskItem>();
+        // Initialize with current tasks
+        _tasks = mainViewModel.Tasks;
+        _selectedTask = mainViewModel.SelectedTask;
 
-        _tasksSubscription = Observable.FromEventPattern<EventHandler, EventArgs>(
-            h => _taskRepository.TasksChanged += h,
-            h => _taskRepository.TasksChanged -= h)
-            .ObserveOn(AvaloniaScheduler.Instance)
-            .Subscribe(_ =>
-            {
-                Log.Information("TasksChanged event received, updating tasks");
-                var updatedTasks = _taskRepository.GetTasks();
-                if (updatedTasks != null)
-                {
-                    Tasks = new List<TaskItem>(updatedTasks); // Keep hierarchy intact
-                    if (_selectedTask != null)
-                    {
-                        var newSelectedTask = FindTaskById(Tasks, _selectedTask.Id);
-                        SelectedTask = newSelectedTask; // Could be null if deleted
-                    }
-                }
-                else
-                {
-                    Tasks = new List<TaskItem>();
-                    SelectedTask = null;
-                }
-            });
-
-        this.WhenAnyValue(x => x.Tasks)
+        // Observe changes to MainWindowViewModel.Tasks
+        mainViewModel.WhenAnyValue(x => x.Tasks)
             .Where(tasks => tasks != null)
-            .Subscribe(tasks =>
+            .Subscribe((Action<List<TaskItem>>)(tasks =>
             {
-                Log.Information("Tasks property changed, count: {Count}", tasks?.Count ?? 0);
-            });
+                Log.Information("MainWindowViewModel.Tasks changed, updating GanttChartViewModel.Tasks, count: {Count}", tasks?.Count ?? 0);
+                Tasks = new List<TaskItem>(tasks);
+            }));
 
-        this.WhenAnyValue(x => x.SelectedTask)
-            .Subscribe(selectedTask =>
+        // Observe changes to MainWindowViewModel.SelectedTask
+        mainViewModel.WhenAnyValue(x => x.SelectedTask)
+            .Subscribe((Action<TaskItem>)(selectedTask =>
             {
-                Log.Information("SelectedTask property changed, task: {TaskName}", selectedTask?.Name ?? "null");
-            });
-    }
-
-    public void UpdateTasks(List<TaskItem> tasks)
-    {
-        if (tasks != null)
-        {
-            Tasks = new List<TaskItem>(tasks);
-        }
-        else
-        {
-            Tasks = new List<TaskItem>();
-        }
-    }
-
-    public void Dispose()
-    {
-        _tasksSubscription?.Dispose();
-    }
-
-    private TaskItem FindTaskById(IEnumerable<TaskItem> tasks, int id) // Changed from Guid to int
-    {
-        foreach (var task in tasks)
-        {
-            if (task.Id == id) return task;
-            var found = FindTaskById(task.Children, id);
-            if (found != null) return found;
-        }
-        return null;
+                Log.Information("MainWindowViewModel.SelectedTask changed, updating GanttChartViewModel.SelectedTask: {TaskName}", selectedTask?.Name ?? "null");
+                SelectedTask = selectedTask;
+            }));
     }
 }

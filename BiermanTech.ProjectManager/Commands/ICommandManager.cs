@@ -16,7 +16,9 @@ namespace BiermanTech.ProjectManager.Commands
         ReactiveCommand<Unit, Unit> CreateTaskCommand { get; }
         ReactiveCommand<Unit, Unit> DeleteTaskCommand { get; }
         ReactiveCommand<Unit, Unit> EditNarrativeCommand { get; }
-        ReactiveCommand<Unit, Unit> LoadProjectCommand { get; }
+        ReactiveCommand<int, Unit> LoadProjectCommand { get; }
+        ReactiveCommand<Unit, Unit> LoadProjectFromFileCommand { get; }
+        Window MainWindow { get; set; }
         ProjectNarrative Narrative { get; }
         ReactiveCommand<Unit, Unit> NewProjectCommand { get; }
         string NotificationMessage { get; set; }

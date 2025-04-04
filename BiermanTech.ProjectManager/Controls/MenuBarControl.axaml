@@ -1,48 +1,29 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            xmlns:vm="using:BiermanTech.ProjectManager.ViewModels"
-            x:Class="BiermanTech.ProjectManager.Controls.MenuBarControl"
-            x:DataType="vm:MenuBarViewModel">
-	<UserControl.Styles>
-		<Style Selector="MenuItem">
-			<Setter Property="Margin" Value="2"/>
-		</Style>
-	</UserControl.Styles>
-
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:BiermanTech.ProjectManager.ViewModels;assembly=BiermanTech.ProjectManager"
+             x:Class="BiermanTech.ProjectManager.Controls.MenuBarControl"
+             x:DataType="vm:MenuBarViewModel">
 	<Menu>
-		<!-- File Menu -->
-		<MenuItem Header="_File">
-			<MenuItem Header="_New Project" Command="{Binding NewProjectCommand}" />
-			<MenuItem Header="_Load Project" Command="{Binding LoadProjectCommand}" />
-			<MenuItem Header="_Save Project" Command="{Binding SaveProjectCommand}" />
-			<MenuItem Header="Save Project _As" Command="{Binding SaveAsProjectCommand}" />
-			<MenuItem Header="Save as _Pdf" Command="{Binding SaveAsPdfCommand}" />
-			<Separator />
-			<MenuItem Header="E_xit" Command="{Binding ExitCommand}" />
+		<MenuItem Header="File">
+			<MenuItem Header="New Project" Command="{Binding NewProjectCommand}"/>
+			<MenuItem Header="Save Project" Command="{Binding SaveProjectCommand}"/>
+			<MenuItem Header="Save As Project" Command="{Binding SaveAsProjectCommand}"/>
+			<MenuItem Header="Load Project (ID 1)" Command="{Binding LoadProjectCommand}" CommandParameter="1"/>
+			<MenuItem Header="Load Project (ID 2)" Command="{Binding LoadProjectCommand}" CommandParameter="2"/>
+			<MenuItem Header="Load Project from File" Command="{Binding LoadProjectFromFileCommand}"/>
+			<MenuItem Header="Save as PDF" Command="{Binding SaveAsPdfCommand}"/>
+			<MenuItem Header="Exit" Command="{Binding ExitCommand}"/>
 		</MenuItem>
-
-		<!-- Edit Menu -->
-		<MenuItem Header="_Edit">
-			<MenuItem Header="_Undo" Command="{Binding UndoCommand}"
-                      IsEnabled="{Binding CanUndo}" />
-			<MenuItem Header="_Redo" Command="{Binding RedoCommand}"
-                      IsEnabled="{Binding CanRedo}" />
+		<MenuItem Header="Edit">
+			<MenuItem Header="Undo" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}"/>
+			<MenuItem Header="Redo" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}"/>
+			<MenuItem Header="Create Task" Command="{Binding CreateTaskCommand}"/>
+			<MenuItem Header="Update Task" Command="{Binding UpdateTaskCommand}"/>
+			<MenuItem Header="Delete Task" Command="{Binding DeleteTaskCommand}"/>
+			<MenuItem Header="Edit Narrative" Command="{Binding EditNarrativeCommand}" IsEnabled="{Binding CanEditNarrative}"/>
 		</MenuItem>
-
-		<!-- Project Menu -->
-		<MenuItem Header="_Project">
-			<MenuItem Header="_Add Task" Command="{Binding CreateTaskCommand}" />
-			<MenuItem Header="_Update Task" Command="{Binding UpdateTaskCommand}"
-                      IsEnabled="{Binding SelectedTask, Converter={StaticResource IsNotNullConverter}}" />
-			<MenuItem Header="_Delete Task" Command="{Binding DeleteTaskCommand}"
-                      IsEnabled="{Binding SelectedTask, Converter={StaticResource IsNotNullConverter}}" />
-			<MenuItem Header="_Edit Narrative" Command="{Binding EditNarrativeCommand}"
-                      IsEnabled="{Binding CanEditNarrative}" />
-		</MenuItem>
-
-		<!-- Help Menu -->
-		<MenuItem Header="_Help">
-			<MenuItem Header="_About" Command="{Binding AboutCommand}" />
+		<MenuItem Header="Help">
+			<MenuItem Header="About" Command="{Binding AboutCommand}"/>
 		</MenuItem>
 	</Menu>
 </UserControl>
