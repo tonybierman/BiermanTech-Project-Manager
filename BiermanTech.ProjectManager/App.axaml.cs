@@ -22,10 +22,26 @@ public class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var viewModel = ServiceProvider.GetRequiredService<MainWindowViewModel>();
+            // Resolve all view models via DI
+            var mainWindowViewModel = ServiceProvider.GetRequiredService<MainWindowViewModel>();
             var ganttViewModel = ServiceProvider.GetRequiredService<GanttChartViewModel>();
             var menuBarViewModel = ServiceProvider.GetRequiredService<MenuBarViewModel>();
-            desktop.MainWindow = new MainWindow(viewModel, ganttViewModel, menuBarViewModel);
+
+            // Create MainWindow
+            var mainWindow = new MainWindow();
+
+            // Set the MainWindow on view models (which delegate to CommandManager)
+            mainWindowViewModel.SetMainWindow(mainWindow);
+            menuBarViewModel.SetMainWindow(mainWindow);
+
+            // Configure MainWindow with view models
+            mainWindow.SetViewModels(mainWindowViewModel, ganttViewModel, menuBarViewModel);
+
+            // Assign MainWindow to the application lifetime
+            desktop.MainWindow = mainWindow;
+
+            // Initialize the view model
+            mainWindowViewModel.Initialize();
         }
 
         base.OnFrameworkInitializationCompleted();

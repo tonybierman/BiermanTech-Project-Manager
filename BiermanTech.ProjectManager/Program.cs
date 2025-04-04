@@ -98,12 +98,20 @@ class Program
             return new CommandFactory(dbContext, projectId, taskFileService);
         });
 
+        // Register CommandManager with its dependencies
+        services.AddSingleton<CommandManager>(provider => new CommandManager(
+            provider.GetRequiredService<ICommandFactory>(),
+            provider.GetRequiredService<IDialogService>(),
+            provider.GetRequiredService<IMessageBus>(),
+            provider.GetRequiredService<ITaskRepository>(),
+            provider.GetRequiredService<TaskDataSeeder>()
+        ));
+
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<GanttChartViewModel>();
         services.AddTransient<TaskDialogViewModel>();
         services.AddTransient<MenuBarViewModel>();
 
-        services.AddSingleton<ICommandManager, CommandManager>();
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IMessageBus, MessageBus>();
         services.AddSingleton<TaskDataSeeder>();

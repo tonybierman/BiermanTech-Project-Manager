@@ -1,64 +1,126 @@
-﻿using ReactiveUI;
+﻿using Avalonia.Controls;
+using BiermanTech.ProjectManager.Commands;
+using BiermanTech.ProjectManager.Models;
+using ReactiveUI;
 using System;
 using System.Reactive;
 using System.Reactive.Linq;
-using Serilog;
-using Avalonia.Controls;
-using BiermanTech.ProjectManager.Models;
 
 namespace BiermanTech.ProjectManager.ViewModels;
 
 public class MenuBarViewModel : ViewModelBase
 {
-    private readonly MainWindowViewModel _mainViewModel;
-    private readonly Window _window;
-    private TaskItem _selectedTask;
+    private readonly CommandManager _commandManager;
+    private string _projectName;
+    private string _projectAuthor;
+    private bool _canUndo;
+    private bool _canRedo;
+    private bool _canEditNarrative;
 
-    // Commands from MainWindowViewModel
-    public ReactiveCommand<Unit, Unit> CreateTaskCommand => _mainViewModel.CreateTaskCommand;
-    public ReactiveCommand<Unit, Unit> UpdateTaskCommand => _mainViewModel.UpdateTaskCommand;
-    public ReactiveCommand<Unit, Unit> DeleteTaskCommand => _mainViewModel.DeleteTaskCommand;
-    public ReactiveCommand<Unit, Unit> UndoCommand => _mainViewModel.UndoCommand;
-    public ReactiveCommand<Unit, Unit> RedoCommand => _mainViewModel.RedoCommand;
-    public ReactiveCommand<Unit, Unit> NewProjectCommand => _mainViewModel.NewProjectCommand;
-    public ReactiveCommand<Unit, Unit> LoadProjectCommand => _mainViewModel.LoadProjectCommand;
-    public ReactiveCommand<Unit, Unit> SaveProjectCommand => _mainViewModel.SaveProjectCommand;
-    public ReactiveCommand<Unit, Unit> SaveAsProjectCommand => _mainViewModel.SaveAsProjectCommand;
-    public ReactiveCommand<Unit, Unit> EditNarrativeCommand => _mainViewModel.EditNarrativeCommand;
-    public ReactiveCommand<Unit, Unit> SaveAsPdfCommand => _mainViewModel.SaveAsPdfCommand;
+    public string ProjectName
+    {
+        get => _projectName;
+        set => this.RaiseAndSetIfChanged(ref _projectName, value);
+    }
 
-    // MenuBar-specific commands
+    public string ProjectAuthor
+    {
+        get => _projectAuthor;
+        set => this.RaiseAndSetIfChanged(ref _projectAuthor, value);
+    }
+
+    public TaskItem SelectedTask => _commandManager.SelectedTask;
+
+    public bool CanUndo
+    {
+        get => _canUndo;
+        set => this.RaiseAndSetIfChanged(ref _canUndo, value);
+    }
+
+    public bool CanRedo
+    {
+        get => _canRedo;
+        set => this.RaiseAndSetIfChanged(ref _canRedo, value);
+    }
+
+    public bool CanEditNarrative
+    {
+        get => _canEditNarrative;
+        set => this.RaiseAndSetIfChanged(ref _canEditNarrative, value);
+    }
+
+    public ReactiveCommand<Unit, Unit> NewProjectCommand => _commandManager.NewProjectCommand;
+    public ReactiveCommand<Unit, Unit> SaveProjectCommand => _commandManager.SaveProjectCommand;
+    public ReactiveCommand<Unit, Unit> SaveAsProjectCommand => _commandManager.SaveAsProjectCommand;
+    public ReactiveCommand<Unit, Unit> LoadProjectCommand => _commandManager.LoadProjectCommand;
+    public ReactiveCommand<Unit, Unit> EditNarrativeCommand => _commandManager.EditNarrativeCommand;
+    public ReactiveCommand<Unit, Unit> SaveAsPdfCommand => _commandManager.SaveAsPdfCommand;
+    public ReactiveCommand<Unit, Unit> CreateTaskCommand => _commandManager.CreateTaskCommand;
+    public ReactiveCommand<Unit, Unit> UpdateTaskCommand => _commandManager.UpdateTaskCommand;
+    public ReactiveCommand<Unit, Unit> DeleteTaskCommand => _commandManager.DeleteTaskCommand;
+    public ReactiveCommand<Unit, Unit> UndoCommand => _commandManager.UndoCommand;
+    public ReactiveCommand<Unit, Unit> RedoCommand => _commandManager.RedoCommand;
+
     public ReactiveCommand<Unit, Unit> ExitCommand { get; }
     public ReactiveCommand<Unit, Unit> AboutCommand { get; }
 
-    public TaskItem SelectedTask
+    public MenuBarViewModel(CommandManager commandManager)
     {
-        get => _selectedTask;
-        set => this.RaiseAndSetIfChanged(ref _selectedTask, value);
-    }
+        _commandManager = commandManager;
 
-    public MenuBarViewModel(MainWindowViewModel mainViewModel, Window window)
-    {
-        _mainViewModel = mainViewModel ?? throw new ArgumentNullException(nameof(mainViewModel));
-        _window = window ?? throw new ArgumentNullException(nameof(window));
+        ProjectName = _commandManager.ProjectName;
+        ProjectAuthor = _commandManager.ProjectAuthor;
 
-        // Observe MainWindowViewModel.SelectedTask and update our SelectedTask property
-        _mainViewModel.WhenAnyValue(x => x.SelectedTask)
-            .Subscribe(selectedTask =>
-            {
-                SelectedTask = selectedTask;
-            });
+        _commandManager
+            .WhenAnyValue(x => x.ProjectName)
+            .BindTo(this, x => x.ProjectName);
 
+        _commandManager
+            .WhenAnyValue(x => x.ProjectAuthor)
+            .BindTo(this, x => x.ProjectAuthor);
+
+        // Bind CanExecute states
+        _commandManager.UndoCommand.CanExecute
+            .Subscribe(canExecute => CanUndo = canExecute);
+
+        _commandManager.RedoCommand.CanExecute
+            .Subscribe(canExecute => CanRedo = canExecute);
+
+        _commandManager.EditNarrativeCommand.CanExecute
+            .Subscribe(canExecute => CanEditNarrative = canExecute);
+
+        // Define ExitCommand
         ExitCommand = ReactiveCommand.Create(() =>
         {
-            Log.Information("Exit command executed");
-            _window.Close();
+            if (_commandManager.MainWindow != null)
+            {
+                _commandManager.MainWindow.Close();
+            }
         });
 
-        AboutCommand = ReactiveCommand.Create(() =>
+        // Define AboutCommand
+        AboutCommand = ReactiveCommand.CreateFromTask(async () =>
         {
-            Log.Information("About command executed");
-            // TODO: Implement about dialog
+            if (_commandManager.MainWindow == null) return;
+            var dialog = new Window
+            {
+                Title = "About",
+                Width = 300,
+                Height = 150,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Content = new TextBlock
+                {
+                    Text = "BiermanTech Project Manager\nVersion 1.0\n© 2025 BiermanTech",
+                    Margin = new Avalonia.Thickness(10),
+                    TextAlignment = Avalonia.Media.TextAlignment.Center
+                }
+            };
+            await dialog.ShowDialog(_commandManager.MainWindow);
         });
+    }
+
+    public void SetMainWindow(Window mainWindow)
+    {
+        _commandManager.SetMainWindow(mainWindow);
     }
 }

@@ -24,9 +24,9 @@
 		<!-- Edit Menu -->
 		<MenuItem Header="_Edit">
 			<MenuItem Header="_Undo" Command="{Binding UndoCommand}"
-                      IsEnabled="{Binding UndoCommand.CanExecute}" />
+                      IsEnabled="{Binding CanUndo}" />
 			<MenuItem Header="_Redo" Command="{Binding RedoCommand}"
-                      IsEnabled="{Binding RedoCommand.CanExecute}" />
+                      IsEnabled="{Binding CanRedo}" />
 		</MenuItem>
 
 		<!-- Project Menu -->
@@ -37,7 +37,7 @@
 			<MenuItem Header="_Delete Task" Command="{Binding DeleteTaskCommand}"
                       IsEnabled="{Binding SelectedTask, Converter={StaticResource IsNotNullConverter}}" />
 			<MenuItem Header="_Edit Narrative" Command="{Binding EditNarrativeCommand}"
-                      IsEnabled="{Binding EditNarrativeCommand.CanExecute}" />
+                      IsEnabled="{Binding CanEditNarrative}" />
 		</MenuItem>
 
 		<!-- Help Menu -->
