@@ -446,8 +446,18 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
 
     public async Task Initialize()
     {
-        Project = await _taskDataSeeder.SeedSampleDataAsync();
-        Tasks = new List<TaskItem>(_taskRepository.GetTasks());
+        try
+        {
+            // Project is loaded correctly here.
+            Project = await _taskDataSeeder.SeedSampleDataAsync();
+            Tasks = new List<TaskItem>(_taskRepository.GetTasks());
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error in Initialize");
+            ShowNotification("Error initializing Commmand Manager.");
+            throw;
+        }
     }
 
     public void ExecuteCommand(ICommand command)

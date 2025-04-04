@@ -39,9 +39,9 @@ public class TaskDataSeeder
             project.Name, project.Tasks?.Count ?? 0, project.Narrative != null);
 
         // Update the repository
-        if (project.Tasks != null)
+        if (project.Tasks != null && project.Tasks.Count == 0)
         {
-            foreach (var task in project.Tasks)
+            foreach (var task in project.Tasks )
             {
                 _taskRepository.AddTask(task); // Ensure repository is in sync
                 Log.Information("Added top-level task to repository: {TaskName}", task.Name);

@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using BiermanTech.ProjectManager.Controls;
 using System.Collections.Generic;
 using System.Linq;
+using Avalonia.Controls;
 
 namespace BiermanTech.ProjectManager;
 
@@ -42,7 +43,7 @@ class Program
 
             // Start the application
             BuildAvaloniaApp(serviceProvider)
-                .StartWithClassicDesktopLifetime(args);
+                .StartWithClassicDesktopLifetime(args, ShutdownMode.OnMainWindowClose);
         }
         catch (Exception ex)
         {
@@ -75,10 +76,8 @@ class Program
             options.UseSqlite($"Data Source={dbPath}")
                    .UseAsyncSeeding(async (context, _, ct) =>
                    {
-                       // Cast context to ProjectDbContext
                        var projectContext = (ProjectDbContext)context;
-
-                       if (await projectContext.Projects.AnyAsync(ct)) // Line 78
+                       if (await projectContext.Projects.AnyAsync(ct))
                        {
                            return;
                        }
@@ -151,14 +150,16 @@ class Program
         services.AddSingleton<ITaskRepository>(provider =>
         {
             var dbContext = provider.GetRequiredService<ProjectDbContext>();
-            var projectId = dbContext.Projects.First().Id; // Line 125
+            var projectId = dbContext.Projects.FirstOrDefault()?.Id
+                ?? throw new InvalidOperationException("No project found in the database.");
             return new DbTaskRepository(dbContext, projectId);
         });
 
         services.AddSingleton<ICommandFactory>(provider =>
         {
             var dbContext = provider.GetRequiredService<ProjectDbContext>();
-            var projectId = dbContext.Projects.First().Id;
+            var projectId = dbContext.Projects.FirstOrDefault()?.Id
+                ?? throw new InvalidOperationException("No project found in the database.");
             var taskFileService = provider.GetRequiredService<TaskFileService>();
             return new CommandFactory(dbContext, projectId, taskFileService);
         });
@@ -175,6 +176,7 @@ class Program
         services.AddTransient<GanttChartViewModel>();
         services.AddTransient<TaskDialogViewModel>();
         services.AddTransient<MenuBarViewModel>();
+        services.AddTransient<MainWindow>(); // Register MainWindow with DI
 
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IMessageBus, MessageBus>();
