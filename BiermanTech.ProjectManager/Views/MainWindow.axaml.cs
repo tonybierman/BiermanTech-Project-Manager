@@ -1,11 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
-using BiermanTech.ProjectManager.Commands;
 using BiermanTech.ProjectManager.Controls;
-using BiermanTech.ProjectManager.Models;
-using BiermanTech.ProjectManager.Services;
 using BiermanTech.ProjectManager.ViewModels;
-using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using System;
 
@@ -15,30 +11,27 @@ public partial class MainWindow : Window
 {
     private readonly MainWindowViewModel _viewModel;
 
-    public MainWindow()
+    public MainWindow(MainWindowViewModel viewModel, GanttChartViewModel ganttViewModel, MenuBarViewModel menuBarViewModel)
     {
+        _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         InitializeComponent();
-        _viewModel = new MainWindowViewModel(
-            App.ServiceProvider.GetService<ITaskRepository>(),
-            App.ServiceProvider.GetService<ICommandManager>(),
-            App.ServiceProvider.GetService<ICommandFactory>(),
-            App.ServiceProvider.GetService<IDialogService>(),
-            App.ServiceProvider.GetService<IMessageBus>(),
-            App.ServiceProvider.GetService<TaskDataSeeder>(),
-            this
-        );
+        DataContext = _viewModel;
 
+        // Set MenuBarControl with DI-resolved MenuBarViewModel
         var menuBarControl = this.FindControl<MenuBarControl>("MenuBarControl");
         if (menuBarControl != null)
         {
-            menuBarControl.DataContext = new MenuBarViewModel(_viewModel, this);
+            menuBarControl.DataContext = menuBarViewModel;
         }
         else
         {
             Log.Error("Failed to find MenuBarControl in MainWindow");
         }
 
-        DataContext = _viewModel;
+        // Set GanttChartControl
+        var ganttControl = new GanttChartControl(ganttViewModel);
+        this.FindControl<ContentControl>("GanttChartPlaceholder").Content = ganttControl;
+
         _viewModel.Initialize();
     }
 

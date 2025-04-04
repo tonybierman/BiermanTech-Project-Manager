@@ -1,3 +1,29 @@
 https://github.com/AvaloniaCommunity/Material.Avalonia/wiki/Brush-Names
 
 https://github.com/AvaloniaCommunity/Material.Avalonia
+
+# Checkout the master branch
+git checkout master
+
+# Pull the latest changes to ensure you are up to date
+git pull origin master
+
+# Merge the messaging-context branch
+git merge messaging-context
+
+# Resolve any conflicts, then:
+git add <conflicted-files>
+git commit
+
+# Push the changes to remote
+git push origin master
+
+# Delete the local messaging-context branch
+git branch -d messaging-context
+
+# Delete the remote messaging-context branch
+git push origin --delete messaging-context
+
+dotnet ef migrations remove # Remove old migration if exists
+dotnet ef migrations add InitialCreateWithDependencies --output-dir Data/Migrations
+dotnet ef database update

@@ -1,98 +1,91 @@
 ﻿using BiermanTech.ProjectManager.Models;
-using BiermanTech.ProjectManager.Services;
+using BiermanTech.ProjectManager.Data;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Linq;
-using System;
 
 namespace BiermanTech.ProjectManager.Commands;
 
 public class SaveProjectCommand : ICommand
 {
     private readonly Project _project;
-    private readonly ITaskRepository _taskRepository;
-    private readonly TaskFileService _taskFileService;
-    private readonly string _filePath;
+    private readonly ProjectDbContext _context;
     private Project _previousProjectState;
-    private List<TaskItem> _previousTasks;
 
-    public SaveProjectCommand(Project project, ITaskRepository taskRepository, TaskFileService taskFileService, string filePath)
+    public SaveProjectCommand(Project project, ProjectDbContext context)
     {
         _project = project;
-        _taskRepository = taskRepository;
-        _taskFileService = taskFileService;
-        _filePath = filePath;
-
-        // Store the previous state for undo (deep copy)
+        _context = context;
         _previousProjectState = DeepCopyProject(project);
-        _previousTasks = DeepCopyTaskList(_taskRepository.GetTasks());
     }
 
     public void Execute()
     {
-        // Update the project's task list with the current tasks from the repository
-        _project.Tasks.Clear();
-        _project.Tasks.AddRange(_taskRepository.GetTasks());
-
-        // Save the project to the specified file
-        Task.Run(() => _taskFileService.SaveProjectAsync(_project, _filePath)).GetAwaiter().GetResult();
+        if (_project.Id == 0) // New project
+        {
+            _context.Projects.Add(_project);
+        }
+        else // Update existing
+        {
+            _context.Projects.Update(_project);
+        }
+        _context.SaveChanges();
     }
 
     public void Undo()
     {
-        // Restore the previous project state
-        _project.Name = _previousProjectState.Name;
-        _project.Author = _previousProjectState.Author;
-        _project.Tasks.Clear();
-        _project.Tasks.AddRange(_previousProjectState.Tasks);
-
-        // Restore the previous tasks in the repository
-        var currentTasks = _taskRepository.GetTasks();
-        currentTasks.Clear();
-        foreach (var task in _previousTasks)
+        if (_project.Id == 0) // Was new
         {
-            currentTasks.Add(task);
+            _context.Projects.Remove(_project);
         }
-        _taskRepository.NotifyTasksChanged();
+        else // Restore previous state
+        {
+            _context.Entry(_project).CurrentValues.SetValues(_previousProjectState);
+            foreach (var task in _project.Tasks)
+            {
+                if (!_previousProjectState.Tasks.Any(t => t.Id == task.Id))
+                {
+                    _context.Tasks.Remove(task);
+                }
+            }
+            foreach (var task in _previousProjectState.Tasks)
+            {
+                if (!_project.Tasks.Any(t => t.Id == task.Id))
+                {
+                    _context.Tasks.Add(task);
+                }
+            }
+        }
+        _context.SaveChanges();
     }
 
-    // Helper method to deep copy a Project
     private Project DeepCopyProject(Project source)
     {
         return new Project
         {
+            Id = source.Id,
             Name = source.Name,
             Author = source.Author,
-            Tasks = DeepCopyTaskList(source.Tasks),
+            Tasks = source.Tasks.Select(t => new TaskItem
+            {
+                Id = t.Id,
+                Name = t.Name,
+                StartDate = t.StartDate,
+                Duration = t.Duration,
+                PercentComplete = t.PercentComplete,
+                ParentId = t.ParentId,
+                ProjectId = t.ProjectId,
+                Children = new List<TaskItem>(t.Children),
+                TaskDependencies = new List<TaskDependency>(t.TaskDependencies)
+            }).ToList(),
             Narrative = source.Narrative != null ? new ProjectNarrative
             {
+                Id = source.Narrative.Id,
                 Situation = source.Narrative.Situation,
                 CurrentState = source.Narrative.CurrentState,
                 Plan = source.Narrative.Plan,
                 Results = source.Narrative.Results
-            } : null
+            } : null,
+            ProjectNarrativeId = source.ProjectNarrativeId
         };
-    }
-
-    // Helper method to deep copy a list of TaskItems, including children
-    private List<TaskItem> DeepCopyTaskList(IEnumerable<TaskItem> source)
-    {
-        var copy = new List<TaskItem>();
-        foreach (var task in source)
-        {
-            var newTask = new TaskItem
-            {
-                Id = task.Id,
-                Name = task.Name,
-                StartDate = task.StartDate,
-                Duration = task.Duration,
-                PercentComplete = task.PercentComplete,
-                DependsOnIds = new List<int>(task.DependsOnIds), // Changed from List<Guid> to List<int>
-                DependsOn = new List<TaskItem>(), // Will be resolved later if needed
-                Children = DeepCopyTaskList(task.Children)
-            };
-            copy.Add(newTask);
-        }
-        return copy;
     }
 }

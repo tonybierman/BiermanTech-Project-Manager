@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace BiermanTech.ProjectManager.Services
+namespace BiermanTech.ProjectManager.Models
 {
     public interface ITaskRepository
     {

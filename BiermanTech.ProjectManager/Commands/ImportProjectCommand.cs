@@ -1,23 +1,29 @@
 ﻿using BiermanTech.ProjectManager.Models;
 using BiermanTech.ProjectManager.Data;
+using BiermanTech.ProjectManager.Services;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace BiermanTech.ProjectManager.Commands;
 
-public class NewProjectCommand : ICommand
+public class ImportProjectCommand : ICommand
 {
     private readonly Project _project;
     private readonly ProjectDbContext _context;
+    private readonly TaskFileService _taskFileService;
+    private readonly string _filePath;
     private Project _previousProjectState;
     private List<TaskItem> _previousTasks;
 
-    public NewProjectCommand(Project project, ProjectDbContext context)
+    public ImportProjectCommand(Project project, ProjectDbContext context, TaskFileService taskFileService, string filePath)
     {
         _project = project ?? throw new ArgumentNullException(nameof(project));
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _taskFileService = taskFileService ?? throw new ArgumentNullException(nameof(taskFileService));
+        _filePath = filePath;
 
         // Store the previous state from the database
         var dbProject = _context.Projects
@@ -26,7 +32,7 @@ public class NewProjectCommand : ICommand
             .Include(p => p.Tasks)
                 .ThenInclude(t => t.Children)
             .Include(p => p.Narrative)
-            .AsNoTracking() // Avoid tracking for previous state
+            .AsNoTracking()
             .FirstOrDefault(p => p.Id == project.Id);
         if (dbProject != null)
         {
@@ -37,11 +43,13 @@ public class NewProjectCommand : ICommand
 
     public void Execute()
     {
-        // Clear existing tasks for this project in the database
+        // Load the project from JSON file
+        var loadedProject = Task.Run(() => _taskFileService.LoadProjectAsync(_filePath)).GetAwaiter().GetResult();
+
+        // Clear existing tasks and dependencies for this project in the database
         var existingTasks = _context.Tasks.Where(t => t.ProjectId == _project.Id).ToList();
         foreach (var task in existingTasks)
         {
-            // Remove associated dependencies first
             var dependencies = _context.TaskDependencies.Where(td => td.TaskId == task.Id || td.DependsOnId == task.Id).ToList();
             _context.TaskDependencies.RemoveRange(dependencies);
             _context.Tasks.Remove(task);
@@ -51,33 +59,75 @@ public class NewProjectCommand : ICommand
         var projectToUpdate = _context.Projects.FirstOrDefault(p => p.Id == _project.Id);
         if (projectToUpdate != null)
         {
-            projectToUpdate.Name = "New Project";
-            projectToUpdate.Author = "Unknown";
-            projectToUpdate.Narrative = null; // Optionally reset narrative
+            projectToUpdate.Name = loadedProject.Name;
+            projectToUpdate.Author = loadedProject.Author;
+            projectToUpdate.Narrative = loadedProject.Narrative != null ? new ProjectNarrative
+            {
+                Situation = loadedProject.Narrative.Situation,
+                CurrentState = loadedProject.Narrative.CurrentState,
+                Plan = loadedProject.Narrative.Plan,
+                Results = loadedProject.Narrative.Results
+            } : null;
         }
         else
         {
-            // If project doesn’t exist, create a new one
-            _project.Name = "New Project";
-            _project.Author = "Unknown";
-            _project.Tasks.Clear(); // Ensure no tasks
-            _context.Projects.Add(_project);
+            throw new InvalidOperationException("Project not found in database for import.");
         }
 
-        // Save changes
+        // Import tasks and dependencies
+        var taskIdMap = new Dictionary<int, int>(); // Map old IDs to new IDs
+        foreach (var task in FlattenTasks(loadedProject.Tasks))
+        {
+            var newTask = new TaskItem
+            {
+                Name = task.Name,
+                StartDate = task.StartDate,
+                Duration = task.Duration,
+                PercentComplete = task.PercentComplete,
+                ProjectId = _project.Id,
+                ParentId = task.ParentId.HasValue ? taskIdMap[task.ParentId.Value] : null
+            };
+            _context.Tasks.Add(newTask);
+            _context.SaveChanges(); // Save to get new ID
+            taskIdMap[task.Id] = newTask.Id;
+
+            // Add dependencies
+            if (task.DependsOnIds != null)
+            {
+                foreach (var oldDependsOnId in task.DependsOnIds)
+                {
+                    if (taskIdMap.TryGetValue(oldDependsOnId, out int newDependsOnId))
+                    {
+                        _context.TaskDependencies.Add(new TaskDependency
+                        {
+                            TaskId = newTask.Id,
+                            DependsOnId = newDependsOnId
+                        });
+                    }
+                }
+            }
+        }
+
+        // Save all changes
         _context.SaveChanges();
 
-        // Update in-memory project to match database state
-        _project.Name = "New Project";
-        _project.Author = "Unknown";
+        // Update in-memory project
+        _project.Name = loadedProject.Name;
+        _project.Author = loadedProject.Author;
         _project.Tasks.Clear();
+        _project.Tasks.AddRange(_context.Tasks.Where(t => t.ProjectId == _project.Id).ToList());
     }
 
     public void Undo()
     {
-        // Remove current tasks (should be none, but ensure consistency)
+        // Clear current tasks and dependencies
         var currentTasks = _context.Tasks.Where(t => t.ProjectId == _project.Id).ToList();
-        _context.Tasks.RemoveRange(currentTasks);
+        foreach (var task in currentTasks)
+        {
+            var dependencies = _context.TaskDependencies.Where(td => td.TaskId == task.Id || td.DependsOnId == task.Id).ToList();
+            _context.TaskDependencies.RemoveRange(dependencies);
+            _context.Tasks.Remove(task);
+        }
 
         // Restore previous project state
         var projectToRevert = _context.Projects.FirstOrDefault(p => p.Id == _project.Id);
@@ -85,19 +135,16 @@ public class NewProjectCommand : ICommand
         {
             projectToRevert.Name = _previousProjectState.Name;
             projectToRevert.Author = _previousProjectState.Author;
-            if (_previousProjectState.Narrative != null)
+            projectToRevert.Narrative = _previousProjectState.Narrative != null ? new ProjectNarrative
             {
-                projectToRevert.Narrative = new ProjectNarrative
-                {
-                    Situation = _previousProjectState.Narrative.Situation,
-                    CurrentState = _previousProjectState.Narrative.CurrentState,
-                    Plan = _previousProjectState.Narrative.Plan,
-                    Results = _previousProjectState.Narrative.Results
-                };
-            }
+                Situation = _previousProjectState.Narrative.Situation,
+                CurrentState = _previousProjectState.Narrative.CurrentState,
+                Plan = _previousProjectState.Narrative.Plan,
+                Results = _previousProjectState.Narrative.Results
+            } : null;
         }
 
-        // Restore previous tasks
+        // Restore previous tasks and dependencies
         foreach (var task in _previousTasks)
         {
             _context.Tasks.Add(task);
@@ -153,15 +200,27 @@ public class NewProjectCommand : ICommand
                 PercentComplete = task.PercentComplete,
                 ProjectId = task.ProjectId,
                 ParentId = task.ParentId,
-                TaskDependencies = task.TaskDependencies.Select(td => new TaskDependency
+                TaskDependencies = task.TaskDependencies?.Select(td => new TaskDependency
                 {
                     TaskId = td.TaskId,
                     DependsOnId = td.DependsOnId
-                }).ToList(),
+                }).ToList() ?? new List<TaskDependency>(),
                 Children = DeepCopyTaskList(task.Children)
             };
             copy.Add(newTask);
         }
         return copy;
+    }
+
+    private IEnumerable<TaskItem> FlattenTasks(IEnumerable<TaskItem> tasks)
+    {
+        foreach (var task in tasks)
+        {
+            yield return task;
+            foreach (var child in FlattenTasks(task.Children))
+            {
+                yield return child;
+            }
+        }
     }
 }

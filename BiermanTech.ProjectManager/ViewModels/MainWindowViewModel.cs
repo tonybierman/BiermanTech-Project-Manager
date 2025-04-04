@@ -95,13 +95,13 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     public ReactiveCommand<Unit, Unit> SaveAsPdfCommand { get; }
 
     public MainWindowViewModel(
-        ITaskRepository taskRepository,
-        ICommandManager commandManager,
-        ICommandFactory commandFactory,
-        IDialogService dialogService,
-        BiermanTech.ProjectManager.Services.IMessageBus messageBus,
-        TaskDataSeeder taskDataSeeder,
-        Window mainWindow)
+            ITaskRepository taskRepository,
+            ICommandManager commandManager,
+            ICommandFactory commandFactory,
+            IDialogService dialogService,
+            Services.IMessageBus messageBus,
+            TaskDataSeeder taskDataSeeder,
+            Window mainWindow)
     {
         _taskRepository = taskRepository;
         _commandManager = commandManager;
@@ -257,7 +257,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
                     return;
                 }
 
-                var command = _commandFactory.CreateSaveProjectCommand(Project, _currentFilePath);
+                var command = _commandFactory.CreateExportProjectCommand(Project, _currentFilePath);
                 _commandManager.ExecuteCommand(command);
                 ShowNotification($"Project saved to {_currentFilePath}.");
             }
@@ -284,7 +284,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
                 if (file != null)
                 {
                     _currentFilePath = file.Path.LocalPath;
-                    var command = _commandFactory.CreateSaveProjectCommand(Project, _currentFilePath);
+                    var command = _commandFactory.CreateExportProjectCommand(Project, _currentFilePath);
                     _commandManager.ExecuteCommand(command);
                     ShowNotification($"Project saved to {_currentFilePath}.");
                 }
@@ -312,7 +312,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
                 if (files != null && files.Count > 0)
                 {
                     _currentFilePath = files[0].Path.LocalPath;
-                    var command = _commandFactory.CreateLoadProjectCommand(Project, _currentFilePath);
+                    var command = _commandFactory.CreateImportProjectCommand(Project, _currentFilePath);
                     _commandManager.ExecuteCommand(command);
                     ShowNotification($"Project loaded from {_currentFilePath}.");
                     this.RaisePropertyChanged(nameof(ProjectName));
@@ -478,7 +478,11 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
             StartDate = task.StartDate,
             Duration = task.Duration,
             PercentComplete = task.PercentComplete,
-            DependsOnIds = new List<int>(task.DependsOnIds),
+            TaskDependencies = task.TaskDependencies?.Select(td => new TaskDependency
+            {
+                TaskId = td.TaskId,
+                DependsOnId = td.DependsOnId
+            }).ToList() ?? new List<TaskDependency>(),
             DependsOn = new List<TaskItem>(task.DependsOn),
             Children = task.Children.Select(DeepCopyTask).ToList()
         };

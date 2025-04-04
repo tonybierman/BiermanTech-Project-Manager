@@ -24,7 +24,7 @@
                        VerticalAlignment="Center" HorizontalAlignment="Right" Margin="5,0" />
 		</DockPanel>
 
-		<!-- Gantt Chart -->
-		<controls:GanttChartControl Tasks="{Binding Tasks}" SelectedTask="{Binding SelectedTask, Mode=TwoWay}" />
+		<!-- Gantt Chart Placeholder -->
+		<ContentControl x:Name="GanttChartPlaceholder" />
 	</DockPanel>
 </Window>

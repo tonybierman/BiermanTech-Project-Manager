@@ -101,16 +101,21 @@ public class TaskDialogViewModel : ViewModelBase
         SaveCommand = ReactiveCommand.Create(
             () =>
             {
-                _result = new TaskItem
+                var result = new TaskItem
                 {
-                    Id = _task?.Id ?? 0, // Changed from Guid.NewGuid() to 0 for new tasks
+                    Id = _task?.Id ?? 0,
                     Name = TaskName,
                     StartDate = StartDate.Value,
                     Duration = TimeSpan.FromDays(DurationDays),
                     PercentComplete = PercentComplete,
-                    DependsOnIds = DependsOnList.Select(t => t.Id).ToList(), // Already int, no change needed
-                    DependsOn = new List<TaskItem>(DependsOnList) // Set DependsOn for runtime
+                    TaskDependencies = DependsOnList.Select(t => new TaskDependency
+                    {
+                        TaskId = _task?.Id ?? 0, // Will be set by EF on save for new tasks
+                        DependsOnId = t.Id
+                    }).ToList(),
+                    DependsOn = new List<TaskItem>(DependsOnList) // For runtime
                 };
+                _result = result;
                 return _result;
             },
             this.WhenAnyValue(
@@ -122,10 +127,7 @@ public class TaskDialogViewModel : ViewModelBase
             )
         );
 
-        CancelCommand = ReactiveCommand.Create(() =>
-        {
-            _result = null;
-        });
+        CancelCommand = ReactiveCommand.Create(() => { _result = null; });
     }
 
     public TaskItem GetResult()

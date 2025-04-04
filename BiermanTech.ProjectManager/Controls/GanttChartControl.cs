@@ -61,13 +61,9 @@ public class GanttChartControl : TemplatedControl
         }
     }
 
-    public GanttChartControl() : this(App.ServiceProvider.GetService<ITaskRepository>())
+    public GanttChartControl(GanttChartViewModel viewModel)
     {
-    }
-
-    public GanttChartControl(ITaskRepository taskRepository)
-    {
-        _viewModel = new GanttChartViewModel(taskRepository);
+        _viewModel = viewModel;
 
         this.WhenAnyValue(x => x._viewModel.Tasks, x => x._viewModel.SelectedTask, x => x.Bounds)
             .Throttle(TimeSpan.FromMilliseconds(50))
