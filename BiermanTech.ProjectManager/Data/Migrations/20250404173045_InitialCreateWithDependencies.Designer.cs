@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BiermanTech.ProjectManager.Data.Migrations
 {
     [DbContext(typeof(ProjectDbContext))]
-    [Migration("20250404163908_InitialCreateWithDependencies")]
+    [Migration("20250404173045_InitialCreateWithDependencies")]
     partial class InitialCreateWithDependencies
     {
         /// <inheritdoc />

@@ -10,15 +10,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using System;
-using System.Linq;
+using System.Threading.Tasks;
 using BiermanTech.ProjectManager.Controls;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace BiermanTech.ProjectManager;
 
 class Program
 {
     [STAThread]
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()
@@ -30,24 +32,15 @@ class Program
             var services = ConfigureServices();
             using var serviceProvider = services.BuildServiceProvider();
 
+            // Apply migrations (this will trigger UseAsyncSeeding)
             using (var scope = serviceProvider.CreateScope())
             {
                 var dbContext = scope.ServiceProvider.GetRequiredService<ProjectDbContext>();
-                dbContext.Database.Migrate();
-
-                if (!dbContext.Projects.Any())
-                {
-                    var defaultProject = new Project
-                    {
-                        Name = "Default Project",
-                        Author = "Unknown"
-                    };
-                    dbContext.Projects.Add(defaultProject);
-                    dbContext.SaveChanges();
-                    Log.Information("Created default project with ID {ProjectId}", defaultProject.Id);
-                }
+                await dbContext.Database.MigrateAsync();
+                Log.Information("Database migrations applied and seeding completed.");
             }
 
+            // Start the application
             BuildAvaloniaApp(serviceProvider)
                 .StartWithClassicDesktopLifetime(args);
         }
@@ -79,14 +72,86 @@ class Program
 
         string dbPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tasks.db");
         services.AddDbContext<ProjectDbContext>(options =>
-            options.UseSqlite($"Data Source={dbPath}"));
+            options.UseSqlite($"Data Source={dbPath}")
+                   .UseAsyncSeeding(async (context, _, ct) =>
+                   {
+                       // Cast context to ProjectDbContext
+                       var projectContext = (ProjectDbContext)context;
+
+                       if (await projectContext.Projects.AnyAsync(ct)) // Line 78
+                       {
+                           return;
+                       }
+
+                       var project = new Project
+                       {
+                           Name = "Sample Project",
+                           Author = "BiermanTech Team",
+                           Narrative = new ProjectNarrative
+                           {
+                               Situation = "This is a sample project to demonstrate the project manager.",
+                               CurrentState = "Initial planning phase.",
+                               Plan = "Develop a project plan, assign tasks, and track progress.",
+                               Results = "Not yet completed."
+                           }
+                       };
+
+                       var task1 = new TaskItem
+                       {
+                           Name = "Define Requirements",
+                           StartDate = DateTimeOffset.Now,
+                           Duration = TimeSpan.FromDays(3),
+                           PercentComplete = 50,
+                           Project = project
+                       };
+
+                       var task2 = new TaskItem
+                       {
+                           Name = "Design System",
+                           StartDate = DateTimeOffset.Now.AddDays(3),
+                           Duration = TimeSpan.FromDays(5),
+                           PercentComplete = 0,
+                           Project = project
+                       };
+
+                       var task3 = new TaskItem
+                       {
+                           Name = "Implement Features",
+                           StartDate = DateTimeOffset.Now.AddDays(8),
+                           Duration = TimeSpan.FromDays(10),
+                           PercentComplete = 0,
+                           Project = project
+                       };
+
+                       project.Tasks = new List<TaskItem> { task1, task2, task3 };
+
+                       projectContext.Projects.Add(project);
+                       await projectContext.SaveChangesAsync(ct);
+
+                       var task2Dependency = new TaskDependency
+                       {
+                           TaskId = task2.Id,
+                           DependsOnId = task1.Id
+                       };
+
+                       var task3Dependency = new TaskDependency
+                       {
+                           TaskId = task3.Id,
+                           DependsOnId = task2.Id
+                       };
+
+                       task2.TaskDependencies = new List<TaskDependency> { task2Dependency };
+                       task3.TaskDependencies = new List<TaskDependency> { task3Dependency };
+
+                       await projectContext.SaveChangesAsync(ct);
+                   }));
 
         services.AddSingleton<TaskFileService>();
 
         services.AddSingleton<ITaskRepository>(provider =>
         {
             var dbContext = provider.GetRequiredService<ProjectDbContext>();
-            var projectId = dbContext.Projects.First().Id;
+            var projectId = dbContext.Projects.First().Id; // Line 125
             return new DbTaskRepository(dbContext, projectId);
         });
 
@@ -98,7 +163,6 @@ class Program
             return new CommandFactory(dbContext, projectId, taskFileService);
         });
 
-        // Register CommandManager with its dependencies
         services.AddSingleton<CommandManager>(provider => new CommandManager(
             provider.GetRequiredService<ICommandFactory>(),
             provider.GetRequiredService<IDialogService>(),
@@ -114,7 +178,10 @@ class Program
 
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IMessageBus, MessageBus>();
-        services.AddSingleton<TaskDataSeeder>();
+        services.AddSingleton<TaskDataSeeder>(provider => new TaskDataSeeder(
+            provider.GetRequiredService<ProjectDbContext>(),
+            provider.GetRequiredService<ITaskRepository>()
+        ));
 
         return services;
     }

@@ -1,50 +1,53 @@
-﻿using BiermanTech.ProjectManager.Models;
-using System;
-using System.Linq;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using BiermanTech.ProjectManager.Data;
+using BiermanTech.ProjectManager.Models;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
-using System.Text.Json;
+using System;
+using System.Threading.Tasks;
 
-namespace BiermanTech.ProjectManager.Services;
+namespace BiermanTech.ProjectManager;
 
 public class TaskDataSeeder
 {
+    private readonly ProjectDbContext _dbContext;
     private readonly ITaskRepository _taskRepository;
-    private readonly TaskFileService _taskFileService;
 
-    public TaskDataSeeder(ITaskRepository taskRepository, TaskFileService taskFileService)
+    public TaskDataSeeder(ProjectDbContext dbContext, ITaskRepository taskRepository)
     {
+        _dbContext = dbContext;
         _taskRepository = taskRepository;
-        _taskFileService = taskFileService;
     }
 
     public async Task<Project> SeedSampleDataAsync()
     {
         Log.Information("Starting SeedSampleDataAsync");
-        Project project;
-        try
+
+        // Load the first project (seeding is handled by UseAsyncSeeding)
+        var project = await _dbContext.Projects
+            .Include(p => p.Tasks)
+            .ThenInclude(t => t.TaskDependencies)
+            .Include(p => p.Narrative)
+            .FirstOrDefaultAsync();
+
+        if (project == null)
         {
-            project = await _taskFileService.LoadProjectAsync();
+            Log.Error("No project found in the database after seeding. This should not happen.");
+            throw new InvalidOperationException("Database seeding failed to create a project.");
         }
-        catch (JsonException ex)
+
+        Log.Information("Loaded project: {Name}, Task count: {Count}, Has Narrative: {HasNarrative}",
+            project.Name, project.Tasks?.Count ?? 0, project.Narrative != null);
+
+        // Update the repository
+        if (project.Tasks != null)
         {
-            Log.Error(ex, "Failed to deserialize default_tasks.json. Using empty project.");
-            project = new Project { Name = "Default Project", Author = "Unknown" };
+            foreach (var task in project.Tasks)
+            {
+                _taskRepository.AddTask(task); // Ensure repository is in sync
+                Log.Information("Added top-level task to repository: {TaskName}", task.Name);
+            }
         }
-        Log.Information("Loaded project: {Name}, Task count: {Count}", project.Name, project.Tasks?.Count ?? 0);
-        if (project.Tasks == null || project.Tasks.Count == 0)
-        {
-            Log.Warning("No tasks loaded from file");
-            return project;
-        }
-        // Only add top-level tasks
-        foreach (var task in project.Tasks)
-        {
-            _taskRepository.AddTask(task); // Children stay nested
-            Log.Information("Added top-level task: {TaskName}", task.Name);
-        }
-        Log.Information("Seeding complete");
+
         return project;
     }
 }

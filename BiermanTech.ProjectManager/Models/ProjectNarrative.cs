@@ -5,6 +5,7 @@ namespace BiermanTech.ProjectManager.Models;
 public class ProjectNarrative
 {
     public int Id { get; set; } // Primary key for EF Core
+    public int ProjectId { get; set; } // Foreign key to Project
     public string Situation { get; set; }
     public string CurrentState { get; set; }
     public string Plan { get; set; }
