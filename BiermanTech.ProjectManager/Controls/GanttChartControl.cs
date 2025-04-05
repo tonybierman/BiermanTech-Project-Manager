@@ -74,7 +74,6 @@ public class GanttChartControl : TemplatedControl
             .Subscribe(selectedTask =>
             {
                 RaisePropertyChanged(SelectedTaskProperty, selectedTask, selectedTask);
-                Log.Information("GanttChartControl SelectedTask changed, task: {TaskName}", selectedTask?.Name ?? "null");
             });
 
         _viewModel.WhenAnyValue(x => x.Tasks)

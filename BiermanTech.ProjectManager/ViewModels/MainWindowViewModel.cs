@@ -46,7 +46,6 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         this.WhenAnyValue(x => x.SelectedTask)
             .Subscribe(selectedTask =>
             {
-                Log.Information("MainWindowViewModel.SelectedTask changed, updating CommandManager.SelectedTask: {TaskName}", selectedTask?.Name ?? "null");
                 _commandManager.SelectedTask = selectedTask;
             });
     }

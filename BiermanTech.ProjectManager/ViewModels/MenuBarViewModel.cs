@@ -102,7 +102,6 @@ public class MenuBarViewModel : ViewModelBase
                     .Subscribe(canExecute =>
                     {
                         CanUpdateTask = canExecute;
-                        Log.Information("MenuBarViewModel: UpdateTaskCommand CanExecute: {CanExecute}", canExecute);
                     });
 
         // Define ExitCommand

@@ -25,7 +25,6 @@ public class GanttChartViewModel : ReactiveObject
         set
         {
             this.RaiseAndSetIfChanged(ref _selectedTask, value);
-            Log.Information("GanttChartViewModel SelectedTask set to: {TaskName}", value?.Name ?? "null");
         }
     }
 
@@ -47,7 +46,6 @@ public class GanttChartViewModel : ReactiveObject
         this.WhenAnyValue(x => x.SelectedTask)
             .Subscribe(selectedTask =>
             {
-                Log.Information("MainWindowViewModel.SelectedTask changed: {TaskName}", selectedTask?.Name ?? "null");
                 mainViewModel.SelectedTask = selectedTask; // Propagate to MainWindowViewModel
             });
 
@@ -55,7 +53,6 @@ public class GanttChartViewModel : ReactiveObject
         mainViewModel.WhenAnyValue(x => x.SelectedTask)
             .Subscribe(selectedTask =>
             {
-                Log.Information("GanttChartViewModel.SelectedTask changed: {TaskName}", selectedTask?.Name ?? "null");
                 SelectedTask = selectedTask;
             });
     }
