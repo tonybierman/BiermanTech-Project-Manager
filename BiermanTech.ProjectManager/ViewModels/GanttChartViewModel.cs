@@ -44,11 +44,10 @@ public class GanttChartViewModel : ReactiveObject
                 Tasks = new List<TaskItem>(tasks);
             }));
 
-        // Fix this subscription
         this.WhenAnyValue(x => x.SelectedTask)
             .Subscribe(selectedTask =>
             {
-                Log.Information("GanttChartViewModel.SelectedTask changed, updating MainWindowViewModel.SelectedTask: {TaskName}", selectedTask?.Name ?? "null");
+                Log.Information("MainWindowViewModel.SelectedTask changed: {TaskName}", selectedTask?.Name ?? "null");
                 mainViewModel.SelectedTask = selectedTask; // Propagate to MainWindowViewModel
             });
 
@@ -56,7 +55,7 @@ public class GanttChartViewModel : ReactiveObject
         mainViewModel.WhenAnyValue(x => x.SelectedTask)
             .Subscribe(selectedTask =>
             {
-                Log.Information("MainWindowViewModel.SelectedTask changed, updating GanttChartViewModel.SelectedTask: {TaskName}", selectedTask?.Name ?? "null");
+                Log.Information("GanttChartViewModel.SelectedTask changed: {TaskName}", selectedTask?.Name ?? "null");
                 SelectedTask = selectedTask;
             });
     }
