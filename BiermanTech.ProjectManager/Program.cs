@@ -1,20 +1,15 @@
 ﻿using Avalonia;
+using Avalonia.Controls;
 using Avalonia.ReactiveUI;
 using BiermanTech.ProjectManager.Data;
 using BiermanTech.ProjectManager.Models;
 using BiermanTech.ProjectManager.Services;
-using BiermanTech.ProjectManager.Commands;
-using BiermanTech.ProjectManager.ViewModels;
-using BiermanTech.ProjectManager.Views;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using System;
-using System.Threading.Tasks;
-using BiermanTech.ProjectManager.Controls;
 using System.Collections.Generic;
-using System.Linq;
-using Avalonia.Controls;
+using System.Threading.Tasks;
 
 namespace BiermanTech.ProjectManager;
 
@@ -30,7 +25,8 @@ class Program
 
         try
         {
-            var services = ConfigureServices();
+            var services = new ServiceCollection();
+            services.AddAppServices();
             using var serviceProvider = services.BuildServiceProvider();
 
             // Apply migrations and seed the database
@@ -168,53 +164,4 @@ class Program
             {
                 ((App)builder.Instance).ServiceProvider = serviceProvider;
             });
-
-    private static IServiceCollection ConfigureServices()
-    {
-        var services = new ServiceCollection();
-
-        string dbPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tasks.db");
-        services.AddDbContext<ProjectDbContext>(options =>
-            options.UseSqlite($"Data Source={dbPath}"));
-
-        services.AddSingleton<TaskFileService>();
-
-        services.AddSingleton<ITaskRepository>(provider =>
-        {
-            var dbContext = provider.GetRequiredService<ProjectDbContext>();
-            var projectId = dbContext.Projects.FirstOrDefault()?.Id
-                ?? throw new InvalidOperationException("No project found in the database.");
-            return new DbTaskRepository(dbContext, projectId);
-        });
-
-        services.AddSingleton<ICommandFactory>(provider =>
-        {
-            var dbContext = provider.GetRequiredService<ProjectDbContext>();
-            var projectId = dbContext.Projects.FirstOrDefault()?.Id
-                ?? throw new InvalidOperationException("No project found in the database.");
-            var taskFileService = provider.GetRequiredService<TaskFileService>();
-            var taskRepository = provider.GetRequiredService<ITaskRepository>();
-            return new CommandFactory(dbContext, projectId, taskFileService, taskRepository);
-        });
-
-        services.AddSingleton<CommandManager>(provider => new CommandManager(
-            provider.GetRequiredService<ICommandFactory>(),
-            provider.GetRequiredService<IDialogService>(),
-            provider.GetRequiredService<IMessageBus>(),
-            provider.GetRequiredService<ITaskRepository>()
-        ));
-
-        services.AddTransient<MainWindowViewModel>();
-        services.AddTransient<GanttChartViewModel>(provider => new GanttChartViewModel(
-            provider.GetRequiredService<MainWindowViewModel>()
-        ));
-        services.AddTransient<MenuBarViewModel>();
-        services.AddTransient<TaskDialogViewModel>();
-        services.AddTransient<MainWindow>();
-
-        services.AddSingleton<IDialogService, DialogService>();
-        services.AddSingleton<IMessageBus, MessageBus>();
-
-        return services;
-    }
 }
