@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.ObjectModel;
 
 namespace BiermanTech.ProjectManager.Commands;
 
@@ -16,7 +17,7 @@ public class ExportProjectCommand : ICommand
     private readonly TaskFileService _taskFileService;
     private readonly string _filePath;
     private Project _previousProjectState;
-    private List<TaskItem> _previousTasks;
+    private ObservableCollection<TaskItem> _previousTasks;
 
     public ExportProjectCommand(Project project, ProjectDbContext context, TaskFileService taskFileService, string filePath)
     {
@@ -68,7 +69,7 @@ public class ExportProjectCommand : ICommand
                 Plan = dbProject.Narrative.Plan,
                 Results = dbProject.Narrative.Results
             } : null,
-            Tasks = new List<TaskItem>()
+            Tasks = new ObservableCollection<TaskItem>()
         };
 
         // Populate exportProject.Tasks with export-ready TaskItems
@@ -88,7 +89,7 @@ public class ExportProjectCommand : ICommand
                     TaskId = td.TaskId,
                     DependsOnId = td.DependsOnId
                 }).ToList(),
-                Children = new List<TaskItem>(task.Children) // Shallow copy; children included via Include
+                Children = new ObservableCollection<TaskItem>(task.Children) // Shallow copy; children included via Include
             };
             exportProject.Tasks.Add(exportTask);
         }
@@ -101,7 +102,10 @@ public class ExportProjectCommand : ICommand
         _project.Author = exportProject.Author;
         _project.Narrative = exportProject.Narrative;
         _project.Tasks.Clear();
-        _project.Tasks.AddRange(exportProject.Tasks);
+        foreach (var task in exportProject.Tasks)
+        {
+            _project.Tasks.Add(task);
+        }
     }
 
     public void Undo()
@@ -151,7 +155,10 @@ public class ExportProjectCommand : ICommand
         _project.Name = _previousProjectState.Name;
         _project.Author = _previousProjectState.Author;
         _project.Tasks.Clear();
-        _project.Tasks.AddRange(_previousTasks);
+        foreach (var task in _previousTasks)
+        {
+            _project.Tasks.Add(task);
+        }
     }
 
     private Project DeepCopyProject(Project source)
@@ -172,9 +179,9 @@ public class ExportProjectCommand : ICommand
         };
     }
 
-    private List<TaskItem> DeepCopyTaskList(IEnumerable<TaskItem> source)
+    private ObservableCollection<TaskItem> DeepCopyTaskList(IEnumerable<TaskItem> source)
     {
-        var copy = new List<TaskItem>();
+        var copy = new ObservableCollection<TaskItem>();
         foreach (var task in source)
         {
             var newTask = new TaskItem

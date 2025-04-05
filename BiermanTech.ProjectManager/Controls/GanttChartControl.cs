@@ -13,6 +13,7 @@ using ReactiveUI;
 using Avalonia.Controls.Presenters;
 using Serilog;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using Avalonia.ReactiveUI;
 
 namespace BiermanTech.ProjectManager.Controls;
@@ -40,6 +41,7 @@ public class GanttChartControl : TemplatedControl
     private ItemsControl _taskList;
     private ScrollViewer _taskListScrollViewer;
     private ScrollViewer _chartScrollViewer;
+    private readonly List<IDisposable> _subscriptions = new List<IDisposable>();
 
     public ObservableCollection<TaskItem> Tasks
     {
@@ -65,14 +67,8 @@ public class GanttChartControl : TemplatedControl
     {
         _viewModel = viewModel;
 
-        // Subscribe to Tasks collection changes
-        if (_viewModel.Tasks != null)
-        {
-            _viewModel.Tasks.CollectionChanged += (s, e) =>
-            {
-                Dispatcher.UIThread.Post(() => UpdateGanttChart());
-            };
-        }
+        // Subscribe to Tasks collection changes and property changes
+        SubscribeToTaskChanges(_viewModel.Tasks);
 
         this.WhenAnyValue(x => x._viewModel.Tasks, x => x._viewModel.SelectedTask, x => x.Bounds)
             .Throttle(TimeSpan.FromMilliseconds(50))
@@ -89,19 +85,80 @@ public class GanttChartControl : TemplatedControl
             .ObserveOn(AvaloniaScheduler.Instance)
             .Subscribe(tasks =>
             {
-                if (tasks != null)
-                {
-                    tasks.CollectionChanged += (s, e) =>
-                    {
-                        Dispatcher.UIThread.Post(() => UpdateGanttChart());
-                    };
-                }
+                UnsubscribeFromTaskChanges();
+                SubscribeToTaskChanges(tasks);
                 if (_taskList != null)
                 {
                     _taskList.ItemsSource = FlattenTasks(tasks);
                     Log.Information("GanttChartControl task list updated, task count: {TaskCount}", FlattenTasks(tasks)?.Count() ?? 0);
                 }
             });
+    }
+
+    private void SubscribeToTaskChanges(ObservableCollection<TaskItem> tasks)
+    {
+        if (tasks == null) return;
+
+        // Subscribe to collection changes
+        tasks.CollectionChanged += (s, e) =>
+        {
+            Dispatcher.UIThread.Post(() => UpdateGanttChart());
+            // Handle added or removed tasks
+            if (e.NewItems != null)
+            {
+                foreach (TaskItem newTask in e.NewItems)
+                {
+                    SubscribeToTaskItem(newTask);
+                }
+            }
+        };
+
+        // Subscribe to existing tasks
+        foreach (var task in tasks)
+        {
+            SubscribeToTaskItem(task);
+        }
+    }
+
+    private void SubscribeToTaskItem(TaskItem task)
+    {
+        if (task == null) return;
+
+        // Subscribe to property changes of this task
+        task.PropertyChanged += Task_PropertyChanged;
+
+        // Subscribe to children collection changes
+        task.Children.CollectionChanged += (s, e) =>
+        {
+            Dispatcher.UIThread.Post(() => UpdateGanttChart());
+            if (e.NewItems != null)
+            {
+                foreach (TaskItem newChild in e.NewItems)
+                {
+                    SubscribeToTaskItem(newChild);
+                }
+            }
+        };
+
+        // Subscribe to existing children
+        foreach (var child in task.Children)
+        {
+            SubscribeToTaskItem(child);
+        }
+    }
+
+    private void Task_PropertyChanged(object sender, PropertyChangedEventArgs e)
+    {
+        Dispatcher.UIThread.Post(() => UpdateGanttChart());
+    }
+
+    private void UnsubscribeFromTaskChanges()
+    {
+        foreach (var task in FlattenTasks(_viewModel.Tasks ?? new ObservableCollection<TaskItem>()))
+        {
+            task.PropertyChanged -= Task_PropertyChanged;
+            task.Children.CollectionChanged -= (s, e) => Dispatcher.UIThread.Post(() => UpdateGanttChart());
+        }
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
@@ -212,6 +269,7 @@ public class GanttChartControl : TemplatedControl
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
+        UnsubscribeFromTaskChanges();
         base.OnDetachedFromVisualTree(e);
     }
 }

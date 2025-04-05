@@ -2,6 +2,7 @@
 using BiermanTech.ProjectManager.Data;
 using System.Collections.Generic;
 using System.Linq;
+using System.Collections.ObjectModel;
 
 namespace BiermanTech.ProjectManager.Commands;
 
@@ -65,7 +66,7 @@ public class SaveProjectCommand : ICommand
             Id = source.Id,
             Name = source.Name,
             Author = source.Author,
-            Tasks = source.Tasks.Select(t => new TaskItem
+            Tasks = new ObservableCollection<TaskItem>(source.Tasks.Select(t => new TaskItem
             {
                 Id = t.Id,
                 Name = t.Name,
@@ -74,9 +75,9 @@ public class SaveProjectCommand : ICommand
                 PercentComplete = t.PercentComplete,
                 ParentId = t.ParentId,
                 ProjectId = t.ProjectId,
-                Children = new List<TaskItem>(t.Children),
+                Children = new ObservableCollection<TaskItem>(t.Children),
                 TaskDependencies = new List<TaskDependency>(t.TaskDependencies)
-            }).ToList(),
+            })),
             Narrative = source.Narrative != null ? new ProjectNarrative
             {
                 Id = source.Narrative.Id,

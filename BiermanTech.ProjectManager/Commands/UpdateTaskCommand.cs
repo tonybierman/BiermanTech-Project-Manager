@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Collections.ObjectModel;
 
 namespace BiermanTech.ProjectManager.Commands;
 
@@ -36,7 +37,7 @@ public class UpdateTaskCommand : ICommand
                 Duration = dbTask.Duration,
                 PercentComplete = dbTask.PercentComplete,
                 TaskDependencies = new List<TaskDependency>(dbTask.TaskDependencies),
-                Children = dbTask.Children.ToList() // Shallow copy
+                Children = new ObservableCollection<TaskItem>(dbTask.Children) // Convert to ObservableCollection
             };
         }
     }

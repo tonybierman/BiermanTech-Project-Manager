@@ -3,47 +3,107 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Collections.ObjectModel;
 
 namespace BiermanTech.ProjectManager.Models;
 
-public class TaskItem
+public class TaskItem : INotifyPropertyChanged
 {
-    public int Id { get; set; } // EF Core PK, JSON-compatible
+    public event PropertyChangedEventHandler PropertyChanged;
 
-    public string Name { get; set; } // JSON-compatible
+    private int _id;
+    private string _name;
+    private DateTimeOffset? _startDate;
+    private TimeSpan? _duration;
+    private double _percentComplete;
+    private int? _parentId;
+    private TaskItem _parent;
+    private ObservableCollection<TaskItem> _children; // Changed to ObservableCollection
+    private int _projectId;
+    private Project _project;
+    private List<TaskDependency> _taskDependencies;
 
-    public DateTimeOffset? StartDate { get; set; } // JSON-compatible
+    public int Id
+    {
+        get => _id;
+        set => SetProperty(ref _id, value);
+    }
 
-    public TimeSpan? Duration { get; set; } // JSON-compatible
+    public string Name
+    {
+        get => _name;
+        set => SetProperty(ref _name, value);
+    }
 
-    [JsonPropertyName("PercentComplete")] // Retain JSON naming
-    public double PercentComplete { get; set; } // EF Core and JSON-compatible
+    public DateTimeOffset? StartDate
+    {
+        get => _startDate;
+        set => SetProperty(ref _startDate, value, alsoNotify: new[] { nameof(EndDate), nameof(CalculatedStartDate), nameof(CalculatedDuration) });
+    }
 
-    // EF Core parent-child relationship
-    public int? ParentId { get; set; }
+    public TimeSpan? Duration
+    {
+        get => _duration;
+        set => SetProperty(ref _duration, value, alsoNotify: new[] { nameof(EndDate), nameof(CalculatedDuration) });
+    }
+
+    [JsonPropertyName("PercentComplete")]
+    public double PercentComplete
+    {
+        get => _percentComplete;
+        set => SetProperty(ref _percentComplete, value);
+    }
+
+    public int? ParentId
+    {
+        get => _parentId;
+        set => SetProperty(ref _parentId, value);
+    }
+
     [ForeignKey("ParentId")]
-    [JsonIgnore] // Exclude from JSON to avoid circular reference
-    public TaskItem Parent { get; set; }
+    [JsonIgnore]
+    public TaskItem Parent
+    {
+        get => _parent;
+        set => SetProperty(ref _parent, value);
+    }
 
-    [JsonPropertyName("Children")] // Explicitly name for JSON
-    public List<TaskItem> Children { get; set; } = new List<TaskItem>(); // JSON-compatible, EF Core navigation
+    [JsonPropertyName("Children")]
+    public ObservableCollection<TaskItem> Children // Changed to ObservableCollection
+    {
+        get => _children;
+        set => SetProperty(ref _children, value, alsoNotify: new[] { nameof(EndDate), nameof(IsParent), nameof(CalculatedStartDate), nameof(CalculatedDuration) });
+    }
 
-    // EF Core project relationship
-    public int ProjectId { get; set; }
+    public int ProjectId
+    {
+        get => _projectId;
+        set => SetProperty(ref _projectId, value);
+    }
+
     [ForeignKey("ProjectId")]
-    [JsonIgnore] // Exclude from JSON to avoid circular reference
-    public Project Project { get; set; }
+    [JsonIgnore]
+    public Project Project
+    {
+        get => _project;
+        set => SetProperty(ref _project, value);
+    }
 
-    // EF Core many-to-many relationship via TaskDependency
-    [JsonIgnore] // Exclude from JSON serialization
-    public List<TaskDependency> TaskDependencies { get; set; } = new List<TaskDependency>(); // Navigation property
+    [JsonIgnore]
+    public List<TaskDependency> TaskDependencies
+    {
+        get => _taskDependencies;
+        set => SetProperty(ref _taskDependencies, value, alsoNotify: new[] { nameof(DependsOnIds) });
+    }
 
-    [NotMapped] // Computed for JSON, not stored in DB
-    [JsonPropertyName("DependsOnIds")] // Matches original JSON structure
+    [NotMapped]
+    [JsonPropertyName("DependsOnIds")]
     public List<int> DependsOnIds => TaskDependencies.Select(td => td.DependsOnId).ToList();
 
-    [NotMapped] // Runtime-only, not stored in DB
-    [JsonIgnore] // Retain original JSON exclusion
+    [NotMapped]
+    [JsonIgnore]
     public List<TaskItem> DependsOn { get; set; } = new List<TaskItem>();
 
     [NotMapped]
@@ -69,4 +129,26 @@ public class TaskItem
     public TimeSpan CalculatedDuration => IsParent
         ? Children.Max(t => t.EndDate) - Children.Min(t => t.CalculatedStartDate)
         : Duration ?? TimeSpan.Zero;
+
+    public TaskItem()
+    {
+        _children = new ObservableCollection<TaskItem>();
+        _taskDependencies = new List<TaskDependency>();
+    }
+
+    protected void SetProperty<T>(ref T field, T value, [CallerMemberName] string propertyName = null, string[] alsoNotify = null)
+    {
+        if (!EqualityComparer<T>.Default.Equals(field, value))
+        {
+            field = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            if (alsoNotify != null)
+            {
+                foreach (var additionalProperty in alsoNotify)
+                {
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(additionalProperty));
+                }
+            }
+        }
+    }
 }

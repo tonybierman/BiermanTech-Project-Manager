@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Collections.ObjectModel;
+using DynamicData;
 
 namespace BiermanTech.ProjectManager.Commands;
 
@@ -12,7 +14,7 @@ public class NewProjectCommand : ICommand
     private readonly Project _project;
     private readonly ProjectDbContext _context;
     private Project _previousProjectState;
-    private List<TaskItem> _previousTasks;
+    private ObservableCollection<TaskItem> _previousTasks;
 
     public NewProjectCommand(Project project, ProjectDbContext context)
     {
@@ -118,7 +120,11 @@ public class NewProjectCommand : ICommand
         _project.Name = _previousProjectState.Name;
         _project.Author = _previousProjectState.Author;
         _project.Tasks.Clear();
-        _project.Tasks.AddRange(_previousTasks);
+        foreach (var task in _previousTasks)
+        {
+            _project.Tasks.Add(task);
+
+        }
     }
 
     private Project DeepCopyProject(Project source)
@@ -139,9 +145,9 @@ public class NewProjectCommand : ICommand
         };
     }
 
-    private List<TaskItem> DeepCopyTaskList(IEnumerable<TaskItem> source)
+    private ObservableCollection<TaskItem> DeepCopyTaskList(IEnumerable<TaskItem> source)
     {
-        var copy = new List<TaskItem>();
+        var copy = new ObservableCollection<TaskItem>();
         foreach (var task in source)
         {
             var newTask = new TaskItem

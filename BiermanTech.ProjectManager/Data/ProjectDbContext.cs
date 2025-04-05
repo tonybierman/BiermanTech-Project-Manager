@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace BiermanTech.ProjectManager.Data;
 
@@ -62,7 +63,7 @@ public class ProjectDbContext : DbContext
                 Project = project1
             };
 
-            project1.Tasks = new List<TaskItem> { task1, task2, task3 };
+            project1.Tasks = new ObservableCollection<TaskItem> { task1, task2, task3 };
 
             // Project 2
             var project2 = new Project
@@ -96,7 +97,7 @@ public class ProjectDbContext : DbContext
                 Project = project2
             };
 
-            project2.Tasks = new List<TaskItem> { task4, task5 };
+            project2.Tasks = new ObservableCollection<TaskItem> { task4, task5 };
 
             dbContext.Projects.AddRange(project1, project2);
             dbContext.SaveChanges();

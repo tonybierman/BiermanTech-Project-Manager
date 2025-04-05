@@ -580,7 +580,7 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
                 DependsOnId = td.DependsOnId
             }).ToList() ?? new List<TaskDependency>(),
             DependsOn = new List<TaskItem>(task.DependsOn),
-            Children = task.Children.Select(DeepCopyTask).ToList()
+            Children = new ObservableCollection<TaskItem>(task.Children.Select(DeepCopyTask))
         };
     }
 }
