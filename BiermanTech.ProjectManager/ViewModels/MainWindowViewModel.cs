@@ -88,11 +88,6 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     public ReactiveCommand<Unit, Unit> EditNarrativeCommand => _commandManager.EditNarrativeCommand;
     public ReactiveCommand<Unit, Unit> SaveAsPdfCommand => _commandManager.SaveAsPdfCommand;
 
-    public void SetMainWindow(Window mainWindow)
-    {
-        _commandManager.SetMainWindow(mainWindow);
-    }
-
     public async Task Initialize()
     {
         await _commandManager.Initialize();

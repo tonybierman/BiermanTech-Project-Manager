@@ -2,85 +2,93 @@ using Avalonia.Controls;
 using BiermanTech.ProjectManager.ViewModels;
 using BiermanTech.ProjectManager.Controls;
 using Serilog;
+using System;
 using System.Threading.Tasks;
 using BiermanTech.ProjectManager.Commands;
-using System;
 
-namespace BiermanTech.ProjectManager.Views;
-
-public partial class MainWindow : Window
+namespace BiermanTech.ProjectManager.Views
 {
-    private readonly MainWindowViewModel _viewModel;
-    private readonly CommandManager _commandManager;
-    private readonly GanttChartViewModel _ganttViewModel;
-    private readonly MenuBarViewModel _menuBarViewModel;
-
-    public MainWindow(MainWindowViewModel viewModel, CommandManager commandManager, GanttChartViewModel ganttViewModel, MenuBarViewModel menuBarViewModel)
+    public partial class MainWindow : Window
     {
-        InitializeComponent();
-        _viewModel = viewModel;
-        _commandManager = commandManager;
-        _ganttViewModel = ganttViewModel;
-        _menuBarViewModel = menuBarViewModel;
+        private readonly CommandManager _commandManager;
+        private readonly GanttChartViewModel _ganttViewModel;
+        private readonly MenuBarViewModel _menuBarViewModel;
 
-        // Subscribe to the Opened event to perform async initialization
-        this.Opened += async (sender, args) =>
+        public MainWindow(
+            MainWindowViewModel viewModel,
+            CommandManager commandManager,
+            GanttChartViewModel ganttViewModel,
+            MenuBarViewModel menuBarViewModel)
         {
-            await InitializeViewModelAsync();
-        };
-    }
+            _commandManager = commandManager ?? throw new ArgumentNullException(nameof(commandManager));
+            _ganttViewModel = ganttViewModel ?? throw new ArgumentNullException(nameof(ganttViewModel));
+            _menuBarViewModel = menuBarViewModel ?? throw new ArgumentNullException(nameof(menuBarViewModel));
 
-    private async Task InitializeViewModelAsync()
-    {
-        try
+            InitializeComponent();
+            SetupWindow(viewModel);
+        }
+
+        private void SetupWindow(MainWindowViewModel viewModel)
         {
-            // Initialize the view model (this sets CommandManager.Project)
-            await _viewModel.Initialize();
+            Opened += async (_, _) => await InitializeAsync(viewModel);
+        }
 
-            // Set the MainWindow on view models (which delegate to CommandManager)
-            _viewModel.SetMainWindow(this);
+        private async Task InitializeAsync(MainWindowViewModel viewModel)
+        {
+            try
+            {
+                await viewModel.Initialize();
+                ConfigureViewModels(viewModel);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to initialize MainWindowViewModel");
+                Close();
+            }
+        }
+
+        private void ConfigureViewModels(MainWindowViewModel viewModel)
+        {
+            DataContext = viewModel;
+            _commandManager.SetMainWindow(this);
             _menuBarViewModel.SetMainWindow(this);
 
-            // Configure MainWindow with view models
-            SetViewModels(_viewModel, _ganttViewModel, _menuBarViewModel);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Failed to initialize MainWindowViewModel");
-            // Show an error message to the user
-            Close();
-        }
-    }
-
-    public void SetViewModels(MainWindowViewModel viewModel, GanttChartViewModel ganttViewModel, MenuBarViewModel menuBarViewModel)
-    {
-        if (viewModel != _viewModel)
-        {
-            throw new ArgumentException("The provided viewModel does not match the existing _viewModel instance.", nameof(viewModel));
+            LogProjectStatus(viewModel);
+            SetupMenuBar();
+            SetupGanttChart();
         }
 
-        DataContext = _viewModel;
-
-        if (_viewModel.Project == null)
+        private void LogProjectStatus(MainWindowViewModel viewModel)
         {
-            Log.Error("MainWindowViewModel.Project is null after initialization");
-        }
-        else
-        {
-            Log.Information("MainWindowViewModel.Project set: {ProjectName}", _viewModel.Project.Name);
-        }
-
-        var menuBarControl = this.FindControl<MenuBarControl>("MenuBarControl");
-        if (menuBarControl != null)
-        {
-            menuBarControl.DataContext = menuBarViewModel;
-        }
-        else
-        {
-            Log.Error("Failed to find MenuBarControl in MainWindow");
+            if (viewModel.Project == null)
+            {
+                Log.Error("MainWindowViewModel.Project is null after initialization");
+            }
+            else
+            {
+                Log.Information("MainWindowViewModel.Project set: {ProjectName}", viewModel.Project.Name);
+            }
         }
 
-        var ganttControl = new GanttChartControl(ganttViewModel);
-        this.FindControl<ContentControl>("GanttChartPlaceholder").Content = ganttControl;
+        private void SetupMenuBar()
+        {
+            if (this.FindControl<MenuBarControl>("MenuBarControl") is { } menuBarControl)
+            {
+                menuBarControl.DataContext = _menuBarViewModel;
+            }
+            else
+            {
+                Log.Error("Failed to find MenuBarControl in MainWindow");
+            }
+        }
+
+        private void SetupGanttChart()
+        {
+            var ganttControl = new GanttChartControl(_ganttViewModel);
+            if (this.FindControl<ContentControl>("GanttChartPlaceholder") is { } placeholder)
+            {
+                placeholder.Content = ganttControl;
+            }
+        }
     }
 }
