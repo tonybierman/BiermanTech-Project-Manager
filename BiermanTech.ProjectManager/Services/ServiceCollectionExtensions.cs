@@ -19,6 +19,16 @@ public static class ServiceCollectionExtensions
         services.AddDbContext<ProjectDbContext>(options =>
             options.UseSqlite($"Data Source={dbPath}"));
 
+        // Apply migrations immediately after configuring DbContext
+        using (var serviceProvider = services.BuildServiceProvider())
+        {
+            using (var scope = serviceProvider.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<ProjectDbContext>();
+                dbContext.Database.Migrate();
+            }
+        }
+
         services.AddSingleton<TaskFileService>();
 
         services.AddSingleton<ITaskRepository>(provider =>

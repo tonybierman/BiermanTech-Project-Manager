@@ -202,6 +202,8 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
                 var result = await _dialogService.ShowTaskDialog(null, flatTasks, MainWindow);
                 if (result != null)
                 {
+                    result.Project = _project;
+                    result.ProjectId = _project?.Id ?? 0;
                     var command = _commandFactory.CreateAddTaskCommand(result);
                     ExecuteCommand(command);
                     _messageBus.Publish(new TaskAdded(result));

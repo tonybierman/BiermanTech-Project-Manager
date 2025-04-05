@@ -17,7 +17,7 @@ public class ProjectDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     => optionsBuilder
-        .UseAsyncSeeding(async (context, _, cancellationToken) =>
+        .UseSeeding((context, _) =>
         {
             ProjectDbContext dbContext = (ProjectDbContext)context;
 
@@ -99,7 +99,7 @@ public class ProjectDbContext : DbContext
             project2.Tasks = new List<TaskItem> { task4, task5 };
 
             dbContext.Projects.AddRange(project1, project2);
-            await dbContext.SaveChangesAsync();
+            dbContext.SaveChanges();
 
             var task2Dependency = new TaskDependency
             {
@@ -116,7 +116,7 @@ public class ProjectDbContext : DbContext
             task2.TaskDependencies = new List<TaskDependency> { task2Dependency };
             task3.TaskDependencies = new List<TaskDependency> { task3Dependency };
 
-            await dbContext.SaveChangesAsync();
+            dbContext.SaveChanges();
         });
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
