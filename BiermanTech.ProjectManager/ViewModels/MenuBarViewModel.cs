@@ -107,11 +107,11 @@ public class MenuBarViewModel : ViewModelBase
             {
                 Title = "About",
                 Width = 300,
-                Height = 150,
+                Height = 175,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 Content = new TextBlock
                 {
-                    Text = "BiermanTech Project Manager\nVersion 1.0\n© 2025 BiermanTech",
+                    Text = "\r\n\r\nBierman Technologies Project Manager\r\n\r\nVersion 1.0\r\n\r\nwww.tonybierman.com",
                     Margin = new Avalonia.Thickness(10),
                     TextAlignment = Avalonia.Media.TextAlignment.Center
                 }
