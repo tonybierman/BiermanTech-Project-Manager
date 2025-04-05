@@ -2,6 +2,7 @@
 using BiermanTech.ProjectManager.Commands;
 using BiermanTech.ProjectManager.Models;
 using ReactiveUI;
+using Serilog;
 using System;
 using System.Reactive;
 using System.Reactive.Linq;
@@ -16,6 +17,7 @@ public class MenuBarViewModel : ViewModelBase
     private bool _canUndo;
     private bool _canRedo;
     private bool _canEditNarrative;
+    private bool _canUpdateTask;
 
     public string ProjectName
     {
@@ -47,6 +49,12 @@ public class MenuBarViewModel : ViewModelBase
     {
         get => _canEditNarrative;
         set => this.RaiseAndSetIfChanged(ref _canEditNarrative, value);
+    }
+
+    public bool CanUpdateTask
+    {
+        get => _canUpdateTask;
+        set => this.RaiseAndSetIfChanged(ref _canUpdateTask, value);
     }
 
     public ReactiveCommand<Unit, Unit> NewProjectCommand => _commandManager.NewProjectCommand;
@@ -89,6 +97,13 @@ public class MenuBarViewModel : ViewModelBase
 
         _commandManager.EditNarrativeCommand.CanExecute
             .Subscribe(canExecute => CanEditNarrative = canExecute);
+
+        _commandManager.UpdateTaskCommand.CanExecute
+                    .Subscribe(canExecute =>
+                    {
+                        CanUpdateTask = canExecute;
+                        Log.Information("MenuBarViewModel: UpdateTaskCommand CanExecute: {CanExecute}", canExecute);
+                    });
 
         // Define ExitCommand
         ExitCommand = ReactiveCommand.Create(() =>

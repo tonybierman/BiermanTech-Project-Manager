@@ -18,7 +18,7 @@
 			<MenuItem Header="Undo" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}"/>
 			<MenuItem Header="Redo" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}"/>
 			<MenuItem Header="Create Task" Command="{Binding CreateTaskCommand}"/>
-			<MenuItem Header="Update Task" Command="{Binding UpdateTaskCommand}"/>
+			<MenuItem Header="Update Task" Command="{Binding UpdateTaskCommand}" IsEnabled="{Binding CanUpdateTask}"/>
 			<MenuItem Header="Delete Task" Command="{Binding DeleteTaskCommand}"/>
 			<MenuItem Header="Edit Narrative" Command="{Binding EditNarrativeCommand}" IsEnabled="{Binding CanEditNarrative}"/>
 		</MenuItem>

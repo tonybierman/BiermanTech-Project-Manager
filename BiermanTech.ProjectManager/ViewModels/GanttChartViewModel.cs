@@ -22,7 +22,11 @@ public class GanttChartViewModel : ReactiveObject
     public TaskItem SelectedTask
     {
         get => _selectedTask;
-        set => this.RaiseAndSetIfChanged(ref _selectedTask, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _selectedTask, value);
+            Log.Information("GanttChartViewModel SelectedTask set to: {TaskName}", value?.Name ?? "null");
+        }
     }
 
     public GanttChartViewModel(MainWindowViewModel mainViewModel)
@@ -40,12 +44,20 @@ public class GanttChartViewModel : ReactiveObject
                 Tasks = new List<TaskItem>(tasks);
             }));
 
-        // Observe changes to MainWindowViewModel.SelectedTask
+        // Fix this subscription
+        this.WhenAnyValue(x => x.SelectedTask)
+            .Subscribe(selectedTask =>
+            {
+                Log.Information("GanttChartViewModel.SelectedTask changed, updating MainWindowViewModel.SelectedTask: {TaskName}", selectedTask?.Name ?? "null");
+                mainViewModel.SelectedTask = selectedTask; // Propagate to MainWindowViewModel
+            });
+
+        // Keep this for downward sync
         mainViewModel.WhenAnyValue(x => x.SelectedTask)
-            .Subscribe((Action<TaskItem>)(selectedTask =>
+            .Subscribe(selectedTask =>
             {
                 Log.Information("MainWindowViewModel.SelectedTask changed, updating GanttChartViewModel.SelectedTask: {TaskName}", selectedTask?.Name ?? "null");
                 SelectedTask = selectedTask;
-            }));
+            });
     }
 }

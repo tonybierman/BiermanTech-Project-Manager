@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Reactive;
 using System.Threading.Tasks;
 using System.Reactive.Linq;
+using Serilog;
 
 namespace BiermanTech.ProjectManager.ViewModels;
 
@@ -40,6 +41,14 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
 
         _commandManager.WhenAnyValue(x => x.NotificationMessage)
             .Subscribe(message => NotificationMessage = message);
+
+        // Add this to propagate to CommandManager
+        this.WhenAnyValue(x => x.SelectedTask)
+            .Subscribe(selectedTask =>
+            {
+                Log.Information("MainWindowViewModel.SelectedTask changed, updating CommandManager.SelectedTask: {TaskName}", selectedTask?.Name ?? "null");
+                _commandManager.SelectedTask = selectedTask;
+            });
     }
 
     public Project Project

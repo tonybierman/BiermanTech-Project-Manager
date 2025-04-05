@@ -243,7 +243,7 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
                 throw;
             }
         }, this.WhenAnyValue(x => x.SelectedTask)
-            .Select(x => x != null && !x.IsParent)
+            .Select(x => x != null)
             .Do(canExecute => Log.Information("UpdateTaskCommand CanExecute: {CanExecute}", canExecute)));
 
         DeleteTaskCommand = ReactiveCommand.Create(() =>
