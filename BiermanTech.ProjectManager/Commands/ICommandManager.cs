@@ -1,7 +1,7 @@
 ﻿using Avalonia.Controls;
 using BiermanTech.ProjectManager.Models;
 using ReactiveUI;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Reactive;
 using System.Threading.Tasks;
@@ -34,7 +34,7 @@ namespace BiermanTech.ProjectManager.Commands
         ReactiveCommand<Unit, Unit> SaveAsProjectCommand { get; }
         ReactiveCommand<Unit, Unit> SaveProjectCommand { get; }
         TaskItem SelectedTask { get; set; }
-        List<TaskItem> Tasks { get; set; }
+        ObservableCollection<TaskItem> Tasks { get; set; }
         ReactiveCommand<Unit, Unit> UndoCommand { get; }
         ReactiveCommand<Unit, Unit> UpdateTaskCommand { get; }
 

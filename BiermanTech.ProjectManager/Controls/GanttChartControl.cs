@@ -11,16 +11,16 @@ using System.Linq;
 using System.Reactive.Linq;
 using ReactiveUI;
 using Avalonia.Controls.Presenters;
-using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using System.Collections.ObjectModel;
 using Avalonia.ReactiveUI;
 
 namespace BiermanTech.ProjectManager.Controls;
 
 public class GanttChartControl : TemplatedControl
 {
-    public static readonly DirectProperty<GanttChartControl, List<TaskItem>> TasksProperty =
-        AvaloniaProperty.RegisterDirect<GanttChartControl, List<TaskItem>>(
+    public static readonly DirectProperty<GanttChartControl, ObservableCollection<TaskItem>> TasksProperty =
+        AvaloniaProperty.RegisterDirect<GanttChartControl, ObservableCollection<TaskItem>>(
             nameof(Tasks),
             o => o.Tasks,
             (o, v) => o.Tasks = v);
@@ -34,14 +34,14 @@ public class GanttChartControl : TemplatedControl
     private readonly GanttChartViewModel _viewModel;
     private GanttChartRenderer _renderer;
     private Canvas _ganttCanvas;
-    private Canvas _dependencyCanvas; // New canvas for dependencies
+    private Canvas _dependencyCanvas;
     private Canvas _headerCanvas;
     private Canvas _dateLinesCanvas;
     private ItemsControl _taskList;
     private ScrollViewer _taskListScrollViewer;
     private ScrollViewer _chartScrollViewer;
 
-    public List<TaskItem> Tasks
+    public ObservableCollection<TaskItem> Tasks
     {
         get => _viewModel.Tasks;
         set => _viewModel.Tasks = value;
@@ -65,6 +65,15 @@ public class GanttChartControl : TemplatedControl
     {
         _viewModel = viewModel;
 
+        // Subscribe to Tasks collection changes
+        if (_viewModel.Tasks != null)
+        {
+            _viewModel.Tasks.CollectionChanged += (s, e) =>
+            {
+                Dispatcher.UIThread.Post(() => UpdateGanttChart());
+            };
+        }
+
         this.WhenAnyValue(x => x._viewModel.Tasks, x => x._viewModel.SelectedTask, x => x.Bounds)
             .Throttle(TimeSpan.FromMilliseconds(50))
             .ObserveOn(AvaloniaScheduler.Instance)
@@ -80,6 +89,13 @@ public class GanttChartControl : TemplatedControl
             .ObserveOn(AvaloniaScheduler.Instance)
             .Subscribe(tasks =>
             {
+                if (tasks != null)
+                {
+                    tasks.CollectionChanged += (s, e) =>
+                    {
+                        Dispatcher.UIThread.Post(() => UpdateGanttChart());
+                    };
+                }
                 if (_taskList != null)
                 {
                     _taskList.ItemsSource = FlattenTasks(tasks);

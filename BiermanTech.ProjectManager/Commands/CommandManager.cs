@@ -13,6 +13,7 @@ using System.Reactive;
 using System.Reactive.Linq;
 using System.Timers;
 using System.Linq;
+using System.Collections.ObjectModel;
 
 namespace BiermanTech.ProjectManager.Commands;
 
@@ -25,7 +26,7 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
     private readonly Services.IMessageBus _messageBus;
     private readonly ITaskRepository _taskRepository;
     private Window _mainWindow;
-    private List<TaskItem> _tasks;
+    private ObservableCollection<TaskItem> _tasks;
     private TaskItem _selectedTask;
     private Project _project;
     private string _notificationMessage;
@@ -77,7 +78,7 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
         }
     }
 
-    public List<TaskItem> Tasks
+    public ObservableCollection<TaskItem> Tasks
     {
         get => _tasks;
         set
@@ -159,7 +160,7 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
         _messageBus = messageBus;
         _taskRepository = taskRepository;
 
-        _tasks = new List<TaskItem>();
+        _tasks = new ObservableCollection<TaskItem>();
         _notificationTimer = new Timer(5000);
         _notificationTimer.Elapsed += (s, e) =>
         {
@@ -178,7 +179,11 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
                 var newTasks = _taskRepository.GetTasks();
                 if (newTasks != null)
                 {
-                    Tasks = new List<TaskItem>(newTasks);
+                    Tasks.Clear();
+                    foreach (var task in newTasks)
+                    {
+                        Tasks.Add(task);
+                    }
                     if (_selectedTask != null)
                     {
                         var newSelectedTask = FindTaskById(Tasks, _selectedTask.Id);
@@ -187,7 +192,7 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
                 }
                 else
                 {
-                    Tasks = new List<TaskItem>();
+                    Tasks.Clear();
                     SelectedTask = null;
                 }
             });
@@ -206,6 +211,7 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
                     result.ProjectId = _project?.Id ?? 0;
                     var command = _commandFactory.CreateAddTaskCommand(result);
                     ExecuteCommand(command);
+                    Tasks.Add(result); // Directly add to ObservableCollection
                     _messageBus.Publish(new TaskAdded(result));
                     ShowNotification($"Task '{result.Name}' added.");
                 }
@@ -232,6 +238,8 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
                 {
                     var command = _commandFactory.CreateUpdateTaskCommand(originalTask, result);
                     ExecuteCommand(command);
+                    var index = Tasks.IndexOf(SelectedTask);
+                    Tasks[index] = result; // Update in ObservableCollection
                     _messageBus.Publish(new TaskUpdated(result));
                     ShowNotification($"Task '{result.Name}' updated.");
                 }
@@ -255,6 +263,7 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
                 var taskToDelete = SelectedTask;
                 var command = _commandFactory.CreateDeleteTaskCommand(taskToDelete);
                 ExecuteCommand(command);
+                Tasks.Remove(taskToDelete); // Remove from ObservableCollection
                 _messageBus.Publish(new TaskDeleted(taskToDelete));
                 ShowNotification($"Task '{taskToDelete.Name}' deleted.");
                 SelectedTask = null;
@@ -370,7 +379,11 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
                 var command = _commandFactory.CreateLoadProjectCommand(projectId);
                 ExecuteCommand(command);
                 Project = (command as LoadProjectCommand)?.LoadedProject;
-                Tasks = new List<TaskItem>(_taskRepository.GetTasks());
+                Tasks.Clear();
+                foreach (var task in _taskRepository.GetTasks())
+                {
+                    Tasks.Add(task);
+                }
                 ShowNotification($"Project with ID {projectId} loaded.");
             }
             catch (Exception ex)
@@ -466,16 +479,18 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
     {
         try
         {
-            // Load the first project using LoadProjectCommand
             var command = _commandFactory.CreateLoadProjectCommand(1);
-            // Skip ClearTasks if the task list is already empty (initial load)
             if (_taskRepository.GetTasks().Any())
             {
                 _taskRepository.ClearTasks();
             }
             ExecuteCommand(command);
             Project = (command as LoadProjectCommand)?.LoadedProject;
-            Tasks = new List<TaskItem>(_taskRepository.GetTasks());
+            Tasks.Clear();
+            foreach (var task in _taskRepository.GetTasks())
+            {
+                Tasks.Add(task);
+            }
         }
         catch (Exception ex)
         {
@@ -484,24 +499,6 @@ public class CommandManager : INotifyPropertyChanged, ICommandManager
             throw;
         }
     }
-
-    //public async Task Initialize()
-    //{
-    //    try
-    //    {
-    //        // Load the first project using LoadProjectCommand
-    //        var command = _commandFactory.CreateLoadProjectCommand(1);
-    //        ExecuteCommand(command);
-    //        Project = (command as LoadProjectCommand)?.LoadedProject;
-    //        Tasks = new List<TaskItem>(_taskRepository.GetTasks());
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        Log.Error(ex, "Error in Initialize");
-    //        ShowNotification("Error initializing Command Manager.");
-    //        throw;
-    //    }
-    //}
 
     public void ExecuteCommand(ICommand command)
     {

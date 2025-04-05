@@ -3,7 +3,7 @@ using System;
 using BiermanTech.ProjectManager.Commands;
 using BiermanTech.ProjectManager.Models;
 using Avalonia.Controls;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Reactive;
 using System.Threading.Tasks;
 using System.Reactive.Linq;
@@ -15,7 +15,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
 {
     private readonly CommandManager _commandManager;
     private Project _project;
-    private List<TaskItem> _tasks;
+    private ObservableCollection<TaskItem> _tasks;
     private TaskItem _selectedTask;
     private string _notificationMessage;
 
@@ -25,7 +25,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
 
         // Initialize reactive properties
         _project = _commandManager.Project;
-        _tasks = _commandManager.Tasks;
+        _tasks = _commandManager.Tasks; // Share the same ObservableCollection instance
         _selectedTask = _commandManager.SelectedTask;
         _notificationMessage = _commandManager.NotificationMessage;
 
@@ -42,7 +42,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         _commandManager.WhenAnyValue(x => x.NotificationMessage)
             .Subscribe(message => NotificationMessage = message);
 
-        // Add this to propagate to CommandManager
+        // Propagate SelectedTask changes to CommandManager
         this.WhenAnyValue(x => x.SelectedTask)
             .Subscribe(selectedTask =>
             {
@@ -56,7 +56,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         set => this.RaiseAndSetIfChanged(ref _project, value);
     }
 
-    public List<TaskItem> Tasks
+    public ObservableCollection<TaskItem> Tasks
     {
         get => _tasks;
         set => this.RaiseAndSetIfChanged(ref _tasks, value);
